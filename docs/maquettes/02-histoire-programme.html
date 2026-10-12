@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Maquette site événement</title>
+  <style>
+    /*
+     * BRAINSTORM COMPANION FRAME TEMPLATE
+     *
+     * This template provides a consistent frame with:
+     * - OS-aware light/dark theming
+     * - Header branding and connection status
+     * - Scrollable main content area
+     * - CSS helpers for common UI patterns
+     *
+     * Content is injected via placeholder comment in #frame-content.
+     */
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; }
+
+    /* ===== THEME VARIABLES ===== */
+    :root {
+      --bg-primary: #f5f5f7;
+      --bg-secondary: #ffffff;
+      --bg-tertiary: #e5e5e7;
+      --border: #d1d1d6;
+      --text-primary: #1d1d1f;
+      --text-secondary: #86868b;
+      --text-tertiary: #aeaeb2;
+      --accent: #0071e3;
+      --accent-hover: #0077ed;
+      --success: #34c759;
+      --warning: #ff9f0a;
+      --error: #ff3b30;
+      --selected-bg: #e8f4fd;
+      --selected-border: #0071e3;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-primary: #1d1d1f;
+        --bg-secondary: #2d2d2f;
+        --bg-tertiary: #3d3d3f;
+        --border: #424245;
+        --text-primary: #f5f5f7;
+        --text-secondary: #86868b;
+        --text-tertiary: #636366;
+        --accent: #0a84ff;
+        --accent-hover: #409cff;
+        --selected-bg: rgba(10, 132, 255, 0.15);
+        --selected-border: #0a84ff;
+      }
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      display: flex;
+      flex-direction: column;
+      line-height: 1.5;
+    }
+
+    /* ===== FRAME STRUCTURE ===== */
+    .brand { display: flex; align-items: center; min-width: 0; overflow: hidden; color: var(--text-secondary); line-height: 1; }
+    .brand a { color: inherit; text-decoration: none; display: flex; align-items: center; gap: 0.5rem; min-width: 0; max-width: 100%; line-height: 1; }
+    .brand-copy { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1; transform: translateY(-1px); }
+    .brand-logo { display: block; height: 1em; width: auto; max-width: 180px; flex-shrink: 0; filter: invert(1); }
+    @media (prefers-color-scheme: dark) {
+      .brand-logo { filter: none; }
+    }
+    .status { font-size: 0.7rem; color: var(--status-color, var(--success)); display: flex; align-items: center; gap: 0.4rem; justify-self: end; white-space: nowrap; line-height: 1; }
+    .status::before { content: ''; width: 6px; height: 6px; background: var(--status-color, var(--success)); border-radius: 50%; }
+
+    .main { flex: 1; overflow-y: auto; }
+    #frame-content { padding: 2rem; min-height: 100%; }
+
+    .header {
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      padding: 0.5rem 1.5rem;
+      flex-shrink: 0;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 1rem;
+      min-height: 42px;
+    }
+    .header .brand { justify-self: start; width: 100%; font-size: 0.75rem; line-height: 1; }
+    .header .status { grid-column: 2; line-height: 1; }
+    .header span {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+    }
+    .header .selected-text {
+      color: var(--accent);
+      font-weight: 500;
+    }
+
+    /* ===== TYPOGRAPHY ===== */
+    h2 { font-size: 1.5rem; font-weight: 600; margin-bottom: 0.5rem; }
+    h3 { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.25rem; }
+    .subtitle { color: var(--text-secondary); margin-bottom: 1.5rem; }
+    .section { margin-bottom: 2rem; }
+    .label { font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
+
+    /* ===== OPTIONS (for A/B/C choices) ===== */
+    .options { display: flex; flex-direction: column; gap: 0.75rem; }
+    .option {
+      background: var(--bg-secondary);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem 1.25rem;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+    .option:hover { border-color: var(--accent); }
+    .option.selected { background: var(--selected-bg); border-color: var(--selected-border); }
+    .option .letter {
+      background: var(--bg-tertiary);
+      color: var(--text-secondary);
+      width: 1.75rem; height: 1.75rem;
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 600; font-size: 0.85rem; flex-shrink: 0;
+    }
+    .option.selected .letter { background: var(--accent); color: white; }
+    .option .content { flex: 1; }
+    .option .content h3 { font-size: 0.95rem; margin-bottom: 0.15rem; }
+    .option .content p { color: var(--text-secondary); font-size: 0.85rem; margin: 0; }
+
+    /* ===== CARDS (for showing designs/mockups) ===== */
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; }
+    .card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    .card.selected { border-color: var(--selected-border); border-width: 2px; }
+    .card-image { background: var(--bg-tertiary); aspect-ratio: 16/10; display: flex; align-items: center; justify-content: center; }
+    .card-body { padding: 1rem; }
+    .card-body h3 { margin-bottom: 0.25rem; }
+    .card-body p { color: var(--text-secondary); font-size: 0.85rem; }
+
+    /* ===== MOCKUP CONTAINER ===== */
+    .mockup {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 1.5rem;
+    }
+    .mockup-header {
+      background: var(--bg-tertiary);
+      padding: 0.5rem 1rem;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      border-bottom: 1px solid var(--border);
+    }
+    .mockup-body { padding: 1.5rem; }
+
+    /* ===== SPLIT VIEW (side-by-side comparison) ===== */
+    .split { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    @media (max-width: 700px) { .split { grid-template-columns: 1fr; } }
+
+    /* ===== PROS/CONS ===== */
+    .pros-cons { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0; }
+    .pros, .cons { background: var(--bg-secondary); border-radius: 8px; padding: 1rem; }
+    .pros h4 { color: var(--success); font-size: 0.85rem; margin-bottom: 0.5rem; }
+    .cons h4 { color: var(--error); font-size: 0.85rem; margin-bottom: 0.5rem; }
+    .pros ul, .cons ul { margin-left: 1.25rem; font-size: 0.85rem; color: var(--text-secondary); }
+    .pros li, .cons li { margin-bottom: 0.25rem; }
+
+    /* ===== PLACEHOLDER (for mockup areas) ===== */
+    .placeholder {
+      background: var(--bg-tertiary);
+      border: 2px dashed var(--border);
+      border-radius: 8px;
+      padding: 2rem;
+      text-align: center;
+      color: var(--text-tertiary);
+    }
+
+    /* ===== INLINE MOCKUP ELEMENTS ===== */
+    .mock-nav { background: var(--accent); color: white; padding: 0.75rem 1rem; display: flex; gap: 1.5rem; font-size: 0.9rem; }
+    .mock-sidebar { background: var(--bg-tertiary); padding: 1rem; min-width: 180px; }
+    .mock-content { padding: 1.5rem; flex: 1; }
+    .mock-button { background: var(--accent); color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.85rem; }
+    .mock-input { background: var(--bg-primary); border: 1px solid var(--border); border-radius: 6px; padding: 0.5rem; width: 100%; }
+  </style>
+</head>
+<body>
+
+  <div class="main">
+    <div id="frame-content">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Nunito:wght@400;600;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<h2>3. Pages « Notre histoire » et « Programme &amp; lieux »</h2>
+<p class="subtitle">Même style Soleil que l'Accueil validé. La carte est interactive (zoom, clic sur les repères).</p>
+
+<style>
+  .sol{--o:#ec5e27;--m:#fdfdf1;--b:#3a2419;--peche:#fbd7c2;--txt2:#6b4a39;font-family:'Nunito',sans-serif;color:var(--b);background:var(--m);border:1px solid #ddd;border-radius:10px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.12);margin-bottom:40px}
+  .sol .hand{font-family:'Caveat',cursive;font-weight:700}
+  .sol img{display:block;width:100%;height:100%;object-fit:cover}
+  .sol .pola{background:#fff;padding:10px 10px 34px;box-shadow:0 10px 24px rgba(58,36,25,.25);position:relative}
+  .sol .pola .cap{position:absolute;bottom:6px;left:0;right:0;text-align:center;font-family:'Caveat',cursive;font-size:20px}
+  .sol .tape{position:absolute;top:-12px;left:50%;width:80px;height:24px;margin-left:-40px;background:rgba(253,253,241,.8);transform:rotate(-4deg);box-shadow:0 1px 3px rgba(0,0,0,.15)}
+  .sol .nav{display:flex;justify-content:space-between;align-items:center;padding:16px 40px;background:var(--o);color:var(--m);font-weight:700;font-size:14px}
+  .sol .nav .logo{font-family:'Caveat',cursive;font-size:30px}
+  .sol .nav .links span{margin-left:22px;white-space:nowrap;padding-bottom:3px}
+  .sol .nav .links .on{border-bottom:3px solid var(--m)}
+  .sol .nav .lang{background:var(--m);color:var(--o);padding:4px 10px;border-radius:10px}
+  .sol .head{background:var(--o);color:var(--m);text-align:center;padding:20px 40px 10px}
+  .sol .head h1{font-family:'Caveat',cursive;font-size:72px;margin:0;line-height:1}
+  .sol .head p{margin:6px 0 0;font-size:17px;font-weight:600}
+  .sol .wave{display:block;width:100%;height:40px}
+  .sol .btn{display:inline-block;padding:10px 18px;border-radius:12px;font-weight:800;font-size:14px}
+  .sol .btn-o{background:var(--o);color:var(--m);box-shadow:0 4px 0 #a8380f}
+  .sol .btn-l{background:#fff;color:var(--b);border:2px solid var(--b)}
+  .sol .foot{background:var(--b);color:var(--m);text-align:center;padding:18px;font-size:13px}
+
+  /* Histoire */
+  .tl{position:relative;padding:30px 80px 20px}
+  .tl:before{content:"";position:absolute;left:50%;top:30px;bottom:20px;border-left:3px dashed var(--o);opacity:.5}
+  .chap{display:grid;grid-template-columns:1fr 1fr;gap:70px;align-items:center;margin-bottom:46px;position:relative}
+  .chap:after{content:"";position:absolute;left:50%;top:50%;width:18px;height:18px;margin:-9px 0 0 -9px;background:var(--o);border:4px solid var(--m);border-radius:50%;box-shadow:0 0 0 2px var(--o)}
+  .chap .pola{height:240px}
+  .chap .yr{font-family:'Caveat',cursive;font-size:54px;color:var(--o);line-height:1;font-weight:700}
+  .chap h3{margin:4px 0 8px;font-size:20px}
+  .chap p{margin:0;line-height:1.7;color:var(--txt2)}
+  .gal{background:var(--peche);padding:40px 60px 50px;text-align:center}
+  .gal h2{font-family:'Caveat',cursive;font-size:52px;margin:0 0 4px;color:var(--b)}
+  .gal .sub{margin:0 0 24px;color:var(--txt2)}
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:120px;gap:12px}
+  .grid div{border-radius:14px;overflow:hidden;position:relative;box-shadow:0 4px 12px rgba(58,36,25,.15)}
+  .grid .big{grid-column:span 2;grid-row:span 2}
+  .grid .tall{grid-row:span 2}
+  .grid .zoom{position:absolute;right:8px;bottom:8px;background:rgba(253,253,241,.92);border-radius:8px;padding:2px 8px;font-size:12px;font-weight:800;color:var(--b)}
+
+  /* Programme */
+  .prog{display:grid;grid-template-columns:1fr 1.15fr;gap:30px;padding:30px 40px 40px;align-items:start}
+  .steps{position:relative}
+  .step{display:grid;grid-template-columns:110px 1fr;gap:14px;background:#fff;border-radius:18px;overflow:hidden;margin-bottom:16px;box-shadow:0 6px 16px rgba(58,36,25,.1);cursor:pointer;border:3px solid transparent}
+  .step.on{border-color:var(--o)}
+  .step .ph{height:100%;min-height:150px}
+  .step .tx{padding:14px 16px 14px 0}
+  .step .h{font-family:'Caveat',cursive;font-size:30px;color:var(--o);font-weight:700;line-height:1}
+  .step .addr{color:var(--txt2);font-size:13px;margin:4px 0 10px}
+  .step .btn{font-size:12px;padding:6px 10px;margin-right:6px}
+  .mapbox{position:sticky;top:10px}
+  #map{height:520px;border-radius:18px;border:6px solid #fff;box-shadow:0 10px 24px rgba(58,36,25,.2)}
+  .legend{display:flex;gap:18px;margin-top:12px;font-size:13px;font-weight:600}
+  .legend i{display:inline-block;width:14px;height:14px;border-radius:50%;vertical-align:-2px;margin-right:6px}
+  .pin{width:34px;height:34px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35)}
+  .pin span{transform:rotate(45deg);color:#fff;font-weight:800;font-family:'Nunito',sans-serif;font-size:14px}
+  .sleep{margin:0 40px 40px;background:var(--peche);border-radius:18px;padding:18px 24px;display:flex;justify-content:space-between;align-items:center}
+</style>
+
+<!-- ================= NOTRE HISTOIRE ================= -->
+<div class="label" style="margin-bottom:8px">Page « Notre histoire » (vue ordinateur)</div>
+<div class="sol">
+  <div class="nav"><span class="logo">☀ Coco</span><span class="links"><span>Accueil</span><span class="on">Notre histoire</span><span>Programme &amp; lieux</span><span>Infos pratiques</span><span>RSVP &amp; Livre d'or</span><span class="lang">FR | EN</span></span></div>
+  <div class="head"><h1>Notre histoire</h1><p>40 ans, quelques chapitres… et beaucoup de souvenirs</p></div>
+  <svg class="wave" viewBox="0 0 1000 40" preserveAspectRatio="none"><path d="M0 0h1000v10c-120 30-240 30-360 10S400-10 280 10 80 40 0 18z" fill="#ec5e27"/></svg>
+
+  <div class="tl">
+    <div class="chap">
+      <div class="pola" style="transform:rotate(-3deg)"><span class="tape"></span><img src="https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=600&q=70" alt=""><span class="cap">les premiers ballons</span></div>
+      <div><div class="yr">1987</div><h3>Une petite tornade est née</h3><p>Coco débarque un 14 juin, avec déjà ce rire qu'on reconnaît à l'autre bout d'une salle. Ses parents s'en souviennent encore.</p></div>
+    </div>
+    <div class="chap">
+      <div><div class="yr">2009</div><h3>La bande se forme</h3><p>Un appart' trop petit, une colocation trop bruyante et des amitiés qui ne se sont jamais défaites depuis.</p></div>
+      <div class="pola" style="transform:rotate(3deg)"><span class="tape"></span><img src="https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=600&q=70" alt=""><span class="cap">la bande, toujours</span></div>
+    </div>
+    <div class="chap">
+      <div class="pola" style="transform:rotate(-2deg)"><span class="tape"></span><img src="https://images.unsplash.com/photo-1478146896981-b80fe463b330?w=600&q=70" alt=""><span class="cap">sur la route</span></div>
+      <div><div class="yr">2027</div><h3>40 ans, et toujours en route</h3><p>Des voyages, des projets, des retrouvailles… et l'envie de réunir tout le monde pour une journée sous le soleil.</p></div>
+    </div>
+  </div>
+
+  <div class="gal">
+    <h2>La galerie</h2>
+    <p class="sub">Cliquez sur une photo pour l'agrandir et faire défiler les autres</p>
+    <div class="grid">
+      <div class="big"><img src="https://images.unsplash.com/photo-1527529482837-4698179dc6ce?w=700&q=70" alt=""><span class="zoom">⤢ agrandir</span></div>
+      <div><img src="https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=300&q=70" alt=""></div>
+      <div class="tall"><img src="https://images.unsplash.com/photo-1478146896981-b80fe463b330?w=300&q=70" alt=""></div>
+      <div><img src="https://images.unsplash.com/photo-1543007630-9710e4a00a20?w=300&q=70" alt=""></div>
+      <div><img src="https://images.unsplash.com/photo-1517457373958-b7bdd4587205?w=300&q=70" alt=""></div>
+      <div><img src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=300&q=70" alt=""></div>
+      <div><img src="https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=300&q=70" alt=""></div>
+    </div>
+  </div>
+  <div class="foot">Coco a 40 ans · 14 juin 2027</div>
+</div>
+
+<!-- ================= PROGRAMME & LIEUX ================= -->
+<div class="label" style="margin-bottom:8px">Page « Programme &amp; lieux » (vue ordinateur, sur téléphone la carte passe sous la liste)</div>
+<div class="sol">
+  <div class="nav"><span class="logo">☀ Coco</span><span class="links"><span>Accueil</span><span>Notre histoire</span><span class="on">Programme &amp; lieux</span><span>Infos pratiques</span><span>RSVP &amp; Livre d'or</span><span class="lang">FR | EN</span></span></div>
+  <div class="head"><h1>Programme &amp; lieux</h1><p>Samedi 14 juin 2027 · Bordeaux</p></div>
+  <svg class="wave" viewBox="0 0 1000 40" preserveAspectRatio="none"><path d="M0 0h1000v10c-120 30-240 30-360 10S400-10 280 10 80 40 0 18z" fill="#ec5e27"/></svg>
+
+  <div class="prog">
+    <div class="steps">
+      <div class="step on" data-i="0"><div class="ph"><img src="https://images.unsplash.com/photo-1469371670807-013ccf25f16a?w=300&q=70" alt=""></div><div class="tx"><div class="h">① 16 h · Accueil</div><b>Jardin du Domaine des Tilleuls</b><div class="addr">12 allée des Tilleuls, 33000 Bordeaux</div><span class="btn btn-o">Itinéraire Google Maps</span><span class="btn btn-l">Waze</span></div></div>
+      <div class="step" data-i="1"><div class="ph"><img src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=300&q=70" alt=""></div><div class="tx"><div class="h">② 19 h · Dîner</div><b>Grande tablée sous les arbres</b><div class="addr">Domaine des Tilleuls, même lieu</div><span class="btn btn-o">Itinéraire Google Maps</span><span class="btn btn-l">Waze</span></div></div>
+      <div class="step" data-i="2"><div class="ph"><img src="https://images.unsplash.com/photo-1517457373958-b7bdd4587205?w=300&q=70" alt=""></div><div class="tx"><div class="h">③ 22 h · Soirée</div><b>La Guinguette, DJ &amp; piste de danse</b><div class="addr">Quai Richelieu, 33000 Bordeaux</div><span class="btn btn-o">Itinéraire Google Maps</span><span class="btn btn-l">Waze</span></div></div>
+      <div class="step" data-i="3"><div class="ph"><img src="https://images.unsplash.com/photo-1543007630-9710e4a00a20?w=300&q=70" alt=""></div><div class="tx"><div class="h">④ Dim. 11 h · Brunch</div><b>Le lendemain, pour les courageux</b><div class="addr">Café du Port, quai des Chartrons</div><span class="btn btn-o">Itinéraire Google Maps</span><span class="btn btn-l">Waze</span></div></div>
+    </div>
+    <div class="mapbox">
+      <div id="map"></div>
+      <div class="legend"><span><i style="background:#ec5e27"></i>Lieux de la fête</span><span><i style="background:#3a2419"></i>Hébergements conseillés</span></div>
+    </div>
+  </div>
+  <div class="sleep"><span><b>Vous venez de loin ?</b> Hôtels et gîtes conseillés sont dans les Infos pratiques.</span><span class="btn btn-o">Voir les hébergements →</span></div>
+  <div class="foot">Coco a 40 ans · 14 juin 2027</div>
+</div>
+
+<script>
+(function init(){
+  if(!window.L){return setTimeout(init,200);}
+  var map=L.map('map',{scrollWheelZoom:false}).setView([44.8445,-0.5735],14);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(map);
+  function pin(c,t){return L.divIcon({className:'',html:'<div class="pin" style="background:'+c+'"><span>'+t+'</span></div>',iconSize:[34,34],iconAnchor:[17,34],popupAnchor:[0,-30]});}
+  var lieux=[[44.8378,-0.5800,'1','16 h · Accueil — Domaine des Tilleuls'],[44.8382,-0.5790,'2','19 h · Dîner — Domaine des Tilleuls'],[44.8435,-0.5690,'3','22 h · Soirée — La Guinguette'],[44.8550,-0.5650,'4','Dim. 11 h · Brunch — Café du Port']];
+  var mk=lieux.map(function(l){return L.marker([l[0],l[1]],{icon:pin('#ec5e27',l[2])}).addTo(map).bindPopup('<b>'+l[3]+'</b>');});
+  [[44.8410,-0.5760,'Hôtel des Quais'],[44.8480,-0.5800,'Gîte Les Chartrons']].forEach(function(h){L.marker([h[0],h[1]],{icon:pin('#3a2419','🛏')}).addTo(map).bindPopup('<b>'+h[2]+'</b><br>Hébergement conseillé');});
+  document.querySelectorAll('.step').forEach(function(s){s.addEventListener('click',function(){document.querySelectorAll('.step').forEach(function(x){x.classList.remove('on')});s.classList.add('on');var m=mk[+s.dataset.i];map.setView(m.getLatLng(),15);m.openPopup();});});
+})();
+</script>
+
+<p class="subtitle">Cliquez sur une étape du programme : la carte se centre sur le lieu. Les noms, adresses et textes sont fictifs.</p>
+    </div>
+  </div>
+
+</body>
+</html>

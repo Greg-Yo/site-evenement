@@ -1,0 +1,21 @@
+# Dépendances et build
+node_modules/
+dist/
+.astro/
+.vercel/
+
+# Données locales (base, boîte d envoi de test)
+.data/
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Outils de maquettage
+.superpowers/
+
+# Système
+.DS_Store
+Thumbs.db
+.impeccable/

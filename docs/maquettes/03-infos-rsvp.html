@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Maquette site événement</title>
+  <style>
+    /*
+     * BRAINSTORM COMPANION FRAME TEMPLATE
+     *
+     * This template provides a consistent frame with:
+     * - OS-aware light/dark theming
+     * - Header branding and connection status
+     * - Scrollable main content area
+     * - CSS helpers for common UI patterns
+     *
+     * Content is injected via placeholder comment in #frame-content.
+     */
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; }
+
+    /* ===== THEME VARIABLES ===== */
+    :root {
+      --bg-primary: #f5f5f7;
+      --bg-secondary: #ffffff;
+      --bg-tertiary: #e5e5e7;
+      --border: #d1d1d6;
+      --text-primary: #1d1d1f;
+      --text-secondary: #86868b;
+      --text-tertiary: #aeaeb2;
+      --accent: #0071e3;
+      --accent-hover: #0077ed;
+      --success: #34c759;
+      --warning: #ff9f0a;
+      --error: #ff3b30;
+      --selected-bg: #e8f4fd;
+      --selected-border: #0071e3;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-primary: #1d1d1f;
+        --bg-secondary: #2d2d2f;
+        --bg-tertiary: #3d3d3f;
+        --border: #424245;
+        --text-primary: #f5f5f7;
+        --text-secondary: #86868b;
+        --text-tertiary: #636366;
+        --accent: #0a84ff;
+        --accent-hover: #409cff;
+        --selected-bg: rgba(10, 132, 255, 0.15);
+        --selected-border: #0a84ff;
+      }
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      display: flex;
+      flex-direction: column;
+      line-height: 1.5;
+    }
+
+    /* ===== FRAME STRUCTURE ===== */
+    .brand { display: flex; align-items: center; min-width: 0; overflow: hidden; color: var(--text-secondary); line-height: 1; }
+    .brand a { color: inherit; text-decoration: none; display: flex; align-items: center; gap: 0.5rem; min-width: 0; max-width: 100%; line-height: 1; }
+    .brand-copy { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1; transform: translateY(-1px); }
+    .brand-logo { display: block; height: 1em; width: auto; max-width: 180px; flex-shrink: 0; filter: invert(1); }
+    @media (prefers-color-scheme: dark) {
+      .brand-logo { filter: none; }
+    }
+    .status { font-size: 0.7rem; color: var(--status-color, var(--success)); display: flex; align-items: center; gap: 0.4rem; justify-self: end; white-space: nowrap; line-height: 1; }
+    .status::before { content: ''; width: 6px; height: 6px; background: var(--status-color, var(--success)); border-radius: 50%; }
+
+    .main { flex: 1; overflow-y: auto; }
+    #frame-content { padding: 2rem; min-height: 100%; }
+
+    .header {
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      padding: 0.5rem 1.5rem;
+      flex-shrink: 0;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 1rem;
+      min-height: 42px;
+    }
+    .header .brand { justify-self: start; width: 100%; font-size: 0.75rem; line-height: 1; }
+    .header .status { grid-column: 2; line-height: 1; }
+    .header span {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+    }
+    .header .selected-text {
+      color: var(--accent);
+      font-weight: 500;
+    }
+
+    /* ===== TYPOGRAPHY ===== */
+    h2 { font-size: 1.5rem; font-weight: 600; margin-bottom: 0.5rem; }
+    h3 { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.25rem; }
+    .subtitle { color: var(--text-secondary); margin-bottom: 1.5rem; }
+    .section { margin-bottom: 2rem; }
+    .label { font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
+
+    /* ===== OPTIONS (for A/B/C choices) ===== */
+    .options { display: flex; flex-direction: column; gap: 0.75rem; }
+    .option {
+      background: var(--bg-secondary);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem 1.25rem;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+    .option:hover { border-color: var(--accent); }
+    .option.selected { background: var(--selected-bg); border-color: var(--selected-border); }
+    .option .letter {
+      background: var(--bg-tertiary);
+      color: var(--text-secondary);
+      width: 1.75rem; height: 1.75rem;
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 600; font-size: 0.85rem; flex-shrink: 0;
+    }
+    .option.selected .letter { background: var(--accent); color: white; }
+    .option .content { flex: 1; }
+    .option .content h3 { font-size: 0.95rem; margin-bottom: 0.15rem; }
+    .option .content p { color: var(--text-secondary); font-size: 0.85rem; margin: 0; }
+
+    /* ===== CARDS (for showing designs/mockups) ===== */
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; }
+    .card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    .card.selected { border-color: var(--selected-border); border-width: 2px; }
+    .card-image { background: var(--bg-tertiary); aspect-ratio: 16/10; display: flex; align-items: center; justify-content: center; }
+    .card-body { padding: 1rem; }
+    .card-body h3 { margin-bottom: 0.25rem; }
+    .card-body p { color: var(--text-secondary); font-size: 0.85rem; }
+
+    /* ===== MOCKUP CONTAINER ===== */
+    .mockup {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 1.5rem;
+    }
+    .mockup-header {
+      background: var(--bg-tertiary);
+      padding: 0.5rem 1rem;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      border-bottom: 1px solid var(--border);
+    }
+    .mockup-body { padding: 1.5rem; }
+
+    /* ===== SPLIT VIEW (side-by-side comparison) ===== */
+    .split { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    @media (max-width: 700px) { .split { grid-template-columns: 1fr; } }
+
+    /* ===== PROS/CONS ===== */
+    .pros-cons { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0; }
+    .pros, .cons { background: var(--bg-secondary); border-radius: 8px; padding: 1rem; }
+    .pros h4 { color: var(--success); font-size: 0.85rem; margin-bottom: 0.5rem; }
+    .cons h4 { color: var(--error); font-size: 0.85rem; margin-bottom: 0.5rem; }
+    .pros ul, .cons ul { margin-left: 1.25rem; font-size: 0.85rem; color: var(--text-secondary); }
+    .pros li, .cons li { margin-bottom: 0.25rem; }
+
+    /* ===== PLACEHOLDER (for mockup areas) ===== */
+    .placeholder {
+      background: var(--bg-tertiary);
+      border: 2px dashed var(--border);
+      border-radius: 8px;
+      padding: 2rem;
+      text-align: center;
+      color: var(--text-tertiary);
+    }
+
+    /* ===== INLINE MOCKUP ELEMENTS ===== */
+    .mock-nav { background: var(--accent); color: white; padding: 0.75rem 1rem; display: flex; gap: 1.5rem; font-size: 0.9rem; }
+    .mock-sidebar { background: var(--bg-tertiary); padding: 1rem; min-width: 180px; }
+    .mock-content { padding: 1.5rem; flex: 1; }
+    .mock-button { background: var(--accent); color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.85rem; }
+    .mock-input { background: var(--bg-primary); border: 1px solid var(--border); border-radius: 6px; padding: 0.5rem; width: 100%; }
+  </style>
+</head>
+<body>
+
+  <div class="main">
+    <div id="frame-content">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Nunito:wght@400;600;800&display=swap" rel="stylesheet">
+
+<h2>4. Pages « Infos pratiques » et « RSVP &amp; Livre d'or »</h2>
+<p class="subtitle">Le formulaire est cliquable (présence, ajout d'accompagnants, envoi simulé).</p>
+
+<style>
+  .sol{--o:#ec5e27;--od:#c94412;--m:#fdfdf1;--b:#3a2419;--peche:#fbd7c2;--txt2:#6b4a39;font-family:'Nunito',sans-serif;color:var(--b);background:var(--m);border:1px solid #ddd;border-radius:10px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.12);margin-bottom:40px}
+  .sol .hand{font-family:'Caveat',cursive;font-weight:700}
+  .sol img{display:block;width:100%;height:100%;object-fit:cover}
+  .sol .nav{display:flex;justify-content:space-between;align-items:center;padding:16px 40px;background:var(--o);color:var(--m);font-weight:700;font-size:14px}
+  .sol .nav .logo{font-family:'Caveat',cursive;font-size:30px}
+  .sol .nav .links span{margin-left:22px;white-space:nowrap;padding-bottom:3px}
+  .sol .nav .links .on{border-bottom:3px solid var(--m)}
+  .sol .nav .lang{background:var(--m);color:var(--o);padding:4px 10px;border-radius:10px}
+  .sol .head{background:var(--o);color:var(--m);text-align:center;padding:20px 40px 10px}
+  .sol .head h1{font-family:'Caveat',cursive;font-size:72px;margin:0;line-height:1}
+  .sol .head p{margin:6px 0 0;font-size:17px;font-weight:700}
+  .sol .wave{display:block;width:100%;height:40px}
+  .sol .btn{display:inline-block;padding:10px 18px;border-radius:12px;font-weight:800;font-size:14px;border:0;cursor:pointer;font-family:inherit}
+  .sol .btn-o{background:var(--o);color:var(--m);box-shadow:0 4px 0 #a8380f}
+  .sol .btn-l{background:#fff;color:var(--b);border:2px solid var(--b)}
+  .sol .foot{background:var(--b);color:var(--m);text-align:center;padding:18px;font-size:13px}
+  .sol h2.sec{font-family:'Caveat',cursive;font-size:46px;color:var(--o);margin:0 0 14px}
+
+  /* Infos */
+  .infos{padding:20px 50px 40px}
+  .chips{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:26px}
+  .chips span{background:#fff;border:2px solid var(--peche);border-radius:30px;padding:8px 16px;font-weight:700;font-size:14px}
+  .hotels{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-bottom:34px}
+  .hotel{background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 6px 16px rgba(58,36,25,.1)}
+  .hotel .ph{height:130px}
+  .hotel .tx{padding:14px 16px 16px}
+  .hotel .tx b{font-size:16px}
+  .hotel .meta{color:var(--txt2);font-size:13px;margin:4px 0 10px}
+  .hotel .tag{display:inline-block;background:var(--peche);border-radius:8px;padding:2px 8px;font-size:12px;font-weight:800;margin-bottom:8px}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:34px}
+  .box{background:#fff;border-radius:18px;padding:20px 22px;box-shadow:0 6px 16px rgba(58,36,25,.1)}
+  .box h3{font-family:'Caveat',cursive;font-size:32px;color:var(--o);margin:0 0 6px}
+  .box p{margin:0 0 12px;line-height:1.6;color:var(--txt2)}
+  .sw{display:flex;gap:8px;margin-top:6px}
+  .sw i{width:34px;height:34px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 1px #ddd}
+  .faq details{background:#fff;border-radius:14px;padding:14px 18px;margin-bottom:10px;box-shadow:0 3px 10px rgba(58,36,25,.08)}
+  .faq summary{font-weight:800;cursor:pointer}
+  .faq details p{margin:10px 0 0;color:var(--txt2);line-height:1.6}
+
+  /* RSVP */
+  .rsvp{display:grid;grid-template-columns:1.1fr .9fr;gap:36px;padding:20px 50px 40px;align-items:start}
+  form.f{background:#fff;border-radius:22px;padding:26px 28px;box-shadow:0 10px 26px rgba(58,36,25,.12)}
+  .f label{display:block;font-weight:800;font-size:14px;margin:16px 0 6px}
+  .f label small{font-weight:600;color:var(--txt2)}
+  .f input[type=text],.f input[type=email],.f input[type=tel],.f textarea{width:100%;box-sizing:border-box;border:2px solid #ecdcd0;border-radius:12px;padding:11px 14px;font:inherit;background:var(--m)}
+  .f textarea{min-height:90px;resize:vertical}
+  .f .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .toggle{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .toggle button{padding:16px;border-radius:14px;border:2px solid #ecdcd0;background:var(--m);font:inherit;font-weight:800;font-size:16px;cursor:pointer;color:var(--b)}
+  .toggle button.on{background:var(--o);border-color:var(--o);color:var(--m)}
+  .moments label{display:flex;align-items:center;gap:10px;font-weight:600;margin:6px 0;background:var(--m);border:2px solid #ecdcd0;border-radius:12px;padding:10px 14px;cursor:pointer}
+  .moments input{accent-color:var(--o);width:18px;height:18px}
+  .comp{display:flex;gap:8px;margin-bottom:8px}
+  .comp input{flex:1}
+  .comp .x{background:none;border:0;font-size:18px;cursor:pointer;color:var(--txt2)}
+  .add{background:none;border:2px dashed var(--o);color:var(--od);border-radius:12px;padding:9px 14px;font:inherit;font-weight:800;cursor:pointer}
+  .f .send{width:100%;margin-top:22px;padding:16px;font-size:17px}
+  .f .note{font-size:13px;color:var(--txt2);margin-top:10px;text-align:center}
+  .ok{display:none;text-align:center;padding:40px 20px}
+  .ok .big{font-size:60px}
+  .ok h3{font-family:'Caveat',cursive;font-size:46px;color:var(--o);margin:4px 0}
+  .gb h2{margin-top:0}
+  .msg{background:#fff;border-radius:16px;padding:16px 18px;margin-bottom:14px;box-shadow:0 6px 14px rgba(58,36,25,.1);position:relative}
+  .msg:nth-child(odd){transform:rotate(-1deg)} .msg:nth-child(even){transform:rotate(1deg)}
+  .msg p{font-family:'Caveat',cursive;font-size:24px;line-height:1.2;margin:0 0 8px}
+  .msg small{color:var(--txt2);font-weight:700}
+  .msg:before{content:"";position:absolute;top:-8px;right:20px;width:16px;height:16px;border-radius:50%;background:var(--o);box-shadow:0 2px 3px rgba(0,0,0,.3)}
+</style>
+
+<!-- ================= INFOS PRATIQUES ================= -->
+<div class="label" style="margin-bottom:8px">Page « Infos pratiques »</div>
+<div class="sol">
+  <div class="nav"><span class="logo">☀ Coco</span><span class="links"><span>Accueil</span><span>Notre histoire</span><span>Programme &amp; lieux</span><span class="on">Infos pratiques</span><span>RSVP &amp; Livre d'or</span><span class="lang">FR | EN</span></span></div>
+  <div class="head"><h1>Infos pratiques</h1><p>Tout ce qu'il faut savoir pour profiter à fond</p></div>
+  <svg class="wave" viewBox="0 0 1000 40" preserveAspectRatio="none"><path d="M0 0h1000v10c-120 30-240 30-360 10S400-10 280 10 80 40 0 18z" fill="#ec5e27"/></svg>
+
+  <div class="infos">
+    <div class="chips"><span>🛏 Où dormir</span><span>👗 Tenue</span><span>🎁 Cadeaux</span><span>🚗 Accès &amp; parking</span><span>❓ FAQ</span><span>📞 Contact</span></div>
+
+    <h2 class="sec">Où dormir</h2>
+    <div class="hotels">
+      <div class="hotel"><div class="ph"><img src="https://images.unsplash.com/photo-1543007630-9710e4a00a20?w=400&q=70" alt=""></div><div class="tx"><span class="tag">Code COCO40 : -10 %</span><br><b>Hôtel des Quais</b><div class="meta">★★★ · 400 m du domaine · ~95 €/nuit</div><span class="btn btn-o">Réserver</span></div></div>
+      <div class="hotel"><div class="ph"><img src="https://images.unsplash.com/photo-1478146896981-b80fe463b330?w=400&q=70" alt=""></div><div class="tx"><span class="tag">Idéal familles</span><br><b>Gîte Les Chartrons</b><div class="meta">6 pers. · 1,5 km · ~180 €/nuit</div><span class="btn btn-o">Réserver</span></div></div>
+      <div class="hotel"><div class="ph"><img src="https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=400&q=70" alt=""></div><div class="tx"><span class="tag">Petit budget</span><br><b>Auberge du Port</b><div class="meta">Dortoirs &amp; chambres · 2 km · ~35 €/nuit</div><span class="btn btn-o">Réserver</span></div></div>
+    </div>
+
+    <div class="two">
+      <div class="box"><h3>👗 Tenue</h3><p>Chic et décontracté, couleurs chaudes bienvenues ! Prévoyez des chaussures plates : on danse sur l'herbe.</p><div class="sw"><i style="background:#ec5e27"></i><i style="background:#fbd7c2"></i><i style="background:#fdfdf1"></i><i style="background:#c9822b"></i><i style="background:#3a2419"></i></div></div>
+      <div class="box"><h3>🎁 Cadeaux</h3><p>Votre présence est le plus beau des cadeaux. Pour ceux qui le souhaitent, une cagnotte finance le prochain voyage de Coco.</p><span class="btn btn-o">Participer à la cagnotte</span></div>
+      <div class="box"><h3>🚗 Accès &amp; parking</h3><p>Parking gratuit au domaine (60 places). Tram B arrêt « Les Tilleuls » à 5 min. Navette vers la Guinguette à 21 h 45.</p></div>
+      <div class="box"><h3>📞 Contact</h3><p>Une question ? Julie (organisatrice)<br><b>06 12 34 56 78</b> · contact@exemple.fr</p><span class="btn btn-l">Écrire un e-mail</span></div>
+    </div>
+
+    <h2 class="sec">Questions fréquentes</h2>
+    <div class="faq">
+      <details open><summary>Les enfants sont-ils les bienvenus ?</summary><p>Oui ! Un coin jeux et une baby-sitter sont prévus de 16 h à 23 h.</p></details>
+      <details><summary>Puis-je venir accompagné(e) ?</summary><p>Indiquez simplement vos accompagnants dans le formulaire RSVP.</p></details>
+      <details><summary>Jusqu'à quand puis-je confirmer ?</summary><p>Avant le 1er mai 2027.</p></details>
+    </div>
+  </div>
+  <div class="foot">Coco a 40 ans · 14 juin 2027</div>
+</div>
+
+<!-- ================= RSVP & LIVRE D'OR ================= -->
+<div class="label" style="margin-bottom:8px">Page « RSVP &amp; Livre d'or » (sur téléphone, le livre d'or passe sous le formulaire)</div>
+<div class="sol">
+  <div class="nav"><span class="logo">☀ Coco</span><span class="links"><span>Accueil</span><span>Notre histoire</span><span>Programme &amp; lieux</span><span>Infos pratiques</span><span class="on">RSVP &amp; Livre d'or</span><span class="lang">FR | EN</span></span></div>
+  <div class="head"><h1>Tu viens ?</h1><p>Réponds avant le 1<sup>er</sup> mai 2027 : ton invitation arrive par e-mail</p></div>
+  <svg class="wave" viewBox="0 0 1000 40" preserveAspectRatio="none"><path d="M0 0h1000v10c-120 30-240 30-360 10S400-10 280 10 80 40 0 18z" fill="#ec5e27"/></svg>
+
+  <div class="rsvp">
+    <div>
+      <form class="f" id="f" onsubmit="event.preventDefault();this.style.display='none';document.getElementById('ok').style.display='block'">
+        <div class="toggle"><button type="button" class="on" onclick="pres(this,1)">🎉 Je viens !</button><button type="button" onclick="pres(this,0)">😢 Je ne pourrai pas</button></div>
+        <div class="row">
+          <div><label>Prénom &amp; nom *</label><input type="text" value="Camille Martin"></div>
+          <div><label>Téléphone <small>(facultatif)</small></label><input type="tel" placeholder="06 …"></div>
+        </div>
+        <label>E-mail * <small>— pour recevoir ton invitation</small></label><input type="email" value="camille@exemple.fr">
+        <div id="yes">
+          <label>Accompagnants</label>
+          <div id="comps"><div class="comp"><input type="text" value="Léo Martin"><button type="button" class="x" onclick="this.parentNode.remove()">✕</button></div></div>
+          <button type="button" class="add" onclick="addComp()">+ Ajouter un accompagnant</button>
+          <label>À quels moments seras-tu là ?</label>
+          <div class="moments">
+            <label><input type="checkbox" checked> 16 h · Accueil au domaine</label>
+            <label><input type="checkbox" checked> 19 h · Dîner</label>
+            <label><input type="checkbox" checked> 22 h · Soirée à la Guinguette</label>
+            <label><input type="checkbox"> Dim. 11 h · Brunch</label>
+          </div>
+        </div>
+        <label>Un petit mot pour Coco ? <small>(affiché dans le livre d'or)</small></label>
+        <textarea placeholder="Joyeux anniversaire…"></textarea>
+        <button class="btn btn-o send">Envoyer ma réponse</button>
+        <div class="note">Tu pourras modifier ta réponse via le lien reçu par e-mail.</div>
+      </form>
+      <div class="ok f" id="ok"><div class="big">🥳</div><h3>Merci Camille !</h3><p>C'est noté pour 2 personnes.<br>Ton invitation (PDF) vient de partir à <b>camille@exemple.fr</b>.</p><span class="btn btn-l" onclick="document.getElementById('ok').style.display='none';document.getElementById('f').style.display='block'">← Revenir au formulaire</span></div>
+    </div>
+
+    <div class="gb">
+      <h2 class="sec">Le livre d'or</h2>
+      <div class="msg"><p>« Joyeux anniversaire ma Coco, on sera là pour danser jusqu'au bout ! »</p><small>Julie &amp; Marc</small></div>
+      <div class="msg"><p>« 40 ans de rires, vivement les 40 prochaines. Je ramène la guitare ! »</p><small>Thomas</small></div>
+      <div class="msg"><p>« Happy birthday from London, can't wait to celebrate with you! »</p><small>Emma</small></div>
+      <div class="msg"><p>« Merci d'être toi. On t'aime fort. »</p><small>Maman &amp; Papa</small></div>
+    </div>
+  </div>
+  <div class="foot">Coco a 40 ans · 14 juin 2027</div>
+</div>
+
+<script>
+function pres(b,y){b.parentNode.querySelectorAll('button').forEach(function(x){x.classList.remove('on')});b.classList.add('on');document.getElementById('yes').style.display=y?'block':'none';}
+function addComp(){var d=document.createElement('div');d.className='comp';d.innerHTML='<input type="text" placeholder="Prénom &amp; nom"><button type="button" class="x" onclick="this.parentNode.remove()">✕</button>';document.getElementById('comps').appendChild(d);}
+</script>
+
+<p class="subtitle">Essayez : « Je ne pourrai pas » masque les accompagnants et les moments ; « Envoyer » montre l'écran de confirmation.</p>
+    </div>
+  </div>
+
+</body>
+</html>

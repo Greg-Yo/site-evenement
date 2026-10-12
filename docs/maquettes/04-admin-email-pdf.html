@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Maquette site événement</title>
+  <style>
+    /*
+     * BRAINSTORM COMPANION FRAME TEMPLATE
+     *
+     * This template provides a consistent frame with:
+     * - OS-aware light/dark theming
+     * - Header branding and connection status
+     * - Scrollable main content area
+     * - CSS helpers for common UI patterns
+     *
+     * Content is injected via placeholder comment in #frame-content.
+     */
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; }
+
+    /* ===== THEME VARIABLES ===== */
+    :root {
+      --bg-primary: #f5f5f7;
+      --bg-secondary: #ffffff;
+      --bg-tertiary: #e5e5e7;
+      --border: #d1d1d6;
+      --text-primary: #1d1d1f;
+      --text-secondary: #86868b;
+      --text-tertiary: #aeaeb2;
+      --accent: #0071e3;
+      --accent-hover: #0077ed;
+      --success: #34c759;
+      --warning: #ff9f0a;
+      --error: #ff3b30;
+      --selected-bg: #e8f4fd;
+      --selected-border: #0071e3;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-primary: #1d1d1f;
+        --bg-secondary: #2d2d2f;
+        --bg-tertiary: #3d3d3f;
+        --border: #424245;
+        --text-primary: #f5f5f7;
+        --text-secondary: #86868b;
+        --text-tertiary: #636366;
+        --accent: #0a84ff;
+        --accent-hover: #409cff;
+        --selected-bg: rgba(10, 132, 255, 0.15);
+        --selected-border: #0a84ff;
+      }
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      display: flex;
+      flex-direction: column;
+      line-height: 1.5;
+    }
+
+    /* ===== FRAME STRUCTURE ===== */
+    .brand { display: flex; align-items: center; min-width: 0; overflow: hidden; color: var(--text-secondary); line-height: 1; }
+    .brand a { color: inherit; text-decoration: none; display: flex; align-items: center; gap: 0.5rem; min-width: 0; max-width: 100%; line-height: 1; }
+    .brand-copy { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1; transform: translateY(-1px); }
+    .brand-logo { display: block; height: 1em; width: auto; max-width: 180px; flex-shrink: 0; filter: invert(1); }
+    @media (prefers-color-scheme: dark) {
+      .brand-logo { filter: none; }
+    }
+    .status { font-size: 0.7rem; color: var(--status-color, var(--success)); display: flex; align-items: center; gap: 0.4rem; justify-self: end; white-space: nowrap; line-height: 1; }
+    .status::before { content: ''; width: 6px; height: 6px; background: var(--status-color, var(--success)); border-radius: 50%; }
+
+    .main { flex: 1; overflow-y: auto; }
+    #frame-content { padding: 2rem; min-height: 100%; }
+
+    .header {
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      padding: 0.5rem 1.5rem;
+      flex-shrink: 0;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 1rem;
+      min-height: 42px;
+    }
+    .header .brand { justify-self: start; width: 100%; font-size: 0.75rem; line-height: 1; }
+    .header .status { grid-column: 2; line-height: 1; }
+    .header span {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+    }
+    .header .selected-text {
+      color: var(--accent);
+      font-weight: 500;
+    }
+
+    /* ===== TYPOGRAPHY ===== */
+    h2 { font-size: 1.5rem; font-weight: 600; margin-bottom: 0.5rem; }
+    h3 { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.25rem; }
+    .subtitle { color: var(--text-secondary); margin-bottom: 1.5rem; }
+    .section { margin-bottom: 2rem; }
+    .label { font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
+
+    /* ===== OPTIONS (for A/B/C choices) ===== */
+    .options { display: flex; flex-direction: column; gap: 0.75rem; }
+    .option {
+      background: var(--bg-secondary);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem 1.25rem;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+    .option:hover { border-color: var(--accent); }
+    .option.selected { background: var(--selected-bg); border-color: var(--selected-border); }
+    .option .letter {
+      background: var(--bg-tertiary);
+      color: var(--text-secondary);
+      width: 1.75rem; height: 1.75rem;
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 600; font-size: 0.85rem; flex-shrink: 0;
+    }
+    .option.selected .letter { background: var(--accent); color: white; }
+    .option .content { flex: 1; }
+    .option .content h3 { font-size: 0.95rem; margin-bottom: 0.15rem; }
+    .option .content p { color: var(--text-secondary); font-size: 0.85rem; margin: 0; }
+
+    /* ===== CARDS (for showing designs/mockups) ===== */
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; }
+    .card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    .card.selected { border-color: var(--selected-border); border-width: 2px; }
+    .card-image { background: var(--bg-tertiary); aspect-ratio: 16/10; display: flex; align-items: center; justify-content: center; }
+    .card-body { padding: 1rem; }
+    .card-body h3 { margin-bottom: 0.25rem; }
+    .card-body p { color: var(--text-secondary); font-size: 0.85rem; }
+
+    /* ===== MOCKUP CONTAINER ===== */
+    .mockup {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 1.5rem;
+    }
+    .mockup-header {
+      background: var(--bg-tertiary);
+      padding: 0.5rem 1rem;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      border-bottom: 1px solid var(--border);
+    }
+    .mockup-body { padding: 1.5rem; }
+
+    /* ===== SPLIT VIEW (side-by-side comparison) ===== */
+    .split { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    @media (max-width: 700px) { .split { grid-template-columns: 1fr; } }
+
+    /* ===== PROS/CONS ===== */
+    .pros-cons { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0; }
+    .pros, .cons { background: var(--bg-secondary); border-radius: 8px; padding: 1rem; }
+    .pros h4 { color: var(--success); font-size: 0.85rem; margin-bottom: 0.5rem; }
+    .cons h4 { color: var(--error); font-size: 0.85rem; margin-bottom: 0.5rem; }
+    .pros ul, .cons ul { margin-left: 1.25rem; font-size: 0.85rem; color: var(--text-secondary); }
+    .pros li, .cons li { margin-bottom: 0.25rem; }
+
+    /* ===== PLACEHOLDER (for mockup areas) ===== */
+    .placeholder {
+      background: var(--bg-tertiary);
+      border: 2px dashed var(--border);
+      border-radius: 8px;
+      padding: 2rem;
+      text-align: center;
+      color: var(--text-tertiary);
+    }
+
+    /* ===== INLINE MOCKUP ELEMENTS ===== */
+    .mock-nav { background: var(--accent); color: white; padding: 0.75rem 1rem; display: flex; gap: 1.5rem; font-size: 0.9rem; }
+    .mock-sidebar { background: var(--bg-tertiary); padding: 1rem; min-width: 180px; }
+    .mock-content { padding: 1.5rem; flex: 1; }
+    .mock-button { background: var(--accent); color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.85rem; }
+    .mock-input { background: var(--bg-primary); border: 1px solid var(--border); border-radius: 6px; padding: 0.5rem; width: 100%; }
+  </style>
+</head>
+<body>
+
+  <div class="main">
+    <div id="frame-content">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Nunito:wght@400;600;800&display=swap" rel="stylesheet">
+
+<h2>5. Admin, e-mail d'invitation et PDF</h2>
+<p class="subtitle">L'admin est volontairement plus sobre (outil de travail), mais garde les couleurs. Onglets cliquables.</p>
+
+<style>
+  .z{--o:#ec5e27;--od:#c94412;--m:#fdfdf1;--b:#3a2419;--peche:#fbd7c2;--txt2:#6b4a39;--line:#efe3d9;font-family:'Nunito',sans-serif;color:var(--b)}
+  .z .hand{font-family:'Caveat',cursive;font-weight:700}
+  .z img{display:block;width:100%;height:100%;object-fit:cover}
+  .z .btn{display:inline-block;padding:9px 14px;border-radius:10px;font-weight:800;font-size:13px;border:0;cursor:pointer;font-family:inherit;white-space:nowrap}
+  .z .btn-o{background:var(--o);color:#fff}
+  .z .btn-b{background:var(--b);color:var(--m)}
+  .z .btn-l{background:#fff;color:var(--b);border:2px solid var(--line)}
+  .frame{border:1px solid #ddd;border-radius:10px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.12);margin-bottom:40px;background:#f7f3ec}
+
+  /* Admin */
+  .adm{display:grid;grid-template-columns:200px 1fr;min-height:640px}
+  .side{background:var(--b);color:var(--m);padding:20px 0}
+  .side .logo{font-family:'Caveat',cursive;font-size:26px;white-space:nowrap;padding:0 22px 18px}
+  .side a{display:block;padding:11px 22px;font-weight:700;font-size:14px;cursor:pointer;color:var(--m)}
+  .side a.on{background:var(--o)}
+  .side .out{margin-top:30px;opacity:.85;font-size:13px}
+  .amain{padding:24px 28px;background:var(--m)}
+  .amain h1{font-size:24px;margin:0 0 16px;display:flex;justify-content:space-between;align-items:center}
+  .tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+  .tile{background:#fff;border-radius:14px;padding:14px 16px;box-shadow:0 3px 10px rgba(58,36,25,.07)}
+  .tile b{display:block;font-size:30px;color:var(--od);line-height:1.1}
+  .tile span{font-size:13px;color:var(--txt2);font-weight:700}
+  .moms{display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap}
+  .moms span{background:var(--peche);border-radius:20px;padding:5px 12px;font-size:13px;font-weight:700}
+  .bar{display:flex;gap:10px;margin-bottom:12px;align-items:center}
+  .bar input{flex:1;border:2px solid var(--line);border-radius:10px;padding:9px 12px;font:inherit;background:#fff}
+  .bar select{border:2px solid var(--line);border-radius:10px;padding:9px;font:inherit;background:#fff}
+  table.t{width:100%;border-collapse:collapse;background:#fff;border-radius:14px;overflow:hidden;font-size:13px;box-shadow:0 3px 10px rgba(58,36,25,.07)}
+  .t th{text-align:left;background:#f5ebe2;padding:10px 12px;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--txt2)}
+  .t td{padding:10px 12px;border-top:1px solid var(--line);vertical-align:middle}
+  .pill{display:inline-block;border-radius:20px;padding:2px 10px;font-weight:800;font-size:12px}
+  .yes{background:#dff3e3;color:#1e6b32}.no{background:#f6dede;color:#8d2323}
+  .ico{display:inline-block;border:2px solid var(--line);border-radius:8px;padding:3px 7px;margin-right:4px;cursor:pointer;background:#fff;font-size:12px;font-weight:800}
+  .pane{display:none}.pane.on{display:block}
+  .gbrow{display:flex;justify-content:space-between;align-items:center;background:#fff;border-radius:12px;padding:12px 16px;margin-bottom:10px;box-shadow:0 3px 10px rgba(58,36,25,.07)}
+  .gbrow p{margin:0;font-family:'Caveat',cursive;font-size:22px}
+  .gbrow small{color:var(--txt2);font-weight:700}
+  .login{display:flex;align-items:center;justify-content:center;background:var(--o);padding:40px}
+  .login .card{background:var(--m);border-radius:20px;padding:28px 30px;width:300px;text-align:center;box-shadow:0 10px 26px rgba(0,0,0,.2)}
+  .login input{width:100%;box-sizing:border-box;border:2px solid var(--line);border-radius:10px;padding:11px;font:inherit;margin:14px 0}
+
+  /* Email */
+  .mail{background:#fff;max-width:640px;margin:0 auto}
+  .mailbar{background:#eee;padding:10px 16px;font-size:13px;color:#444;border-bottom:1px solid #ddd}
+  .mailbar b{color:#111}
+  .mailbody{background:#f4efe8;padding:24px}
+  .mcard{background:var(--m);border-radius:16px;overflow:hidden;max-width:520px;margin:0 auto;box-shadow:0 4px 14px rgba(0,0,0,.08)}
+  .mcard .top{background:var(--o);color:var(--m);text-align:center;padding:20px}
+  .mcard .top h2{font-family:'Caveat',cursive;font-size:48px;margin:0;line-height:1}
+  .mcard .ph{height:180px}
+  .mcard .in{padding:20px 26px;line-height:1.6;font-size:15px}
+  .mcard .recap{background:#fff;border-radius:12px;padding:12px 16px;margin:12px 0;font-size:14px}
+  .attach{display:flex;align-items:center;gap:10px;border:2px solid var(--line);border-radius:12px;padding:10px 14px;background:#fff;font-weight:800;font-size:14px;margin-top:14px}
+  .attach i{font-style:normal;background:#d33;color:#fff;border-radius:6px;padding:4px 6px;font-size:11px}
+
+  /* PDF */
+  .pdfs{display:grid;grid-template-columns:1fr 1.25fr;gap:30px;align-items:start}
+  .paper{background:#fff;box-shadow:0 10px 28px rgba(0,0,0,.18);margin:0 auto}
+  .inv{width:100%;aspect-ratio:1/1.414;background:var(--m);position:relative;overflow:hidden;display:flex;flex-direction:column}
+  .inv .band{background:var(--o);color:var(--m);text-align:center;padding:18px 12px 10px}
+  .inv .band small{font-weight:800}
+  .inv .band h2{font-family:'Caveat',cursive;font-size:46px;margin:0;line-height:1}
+  .inv .pola{background:#fff;padding:7px 7px 22px;width:52%;height:150px;margin:-4px auto 0;transform:rotate(-3deg);box-shadow:0 6px 14px rgba(0,0,0,.2)}
+  .inv .who{text-align:center;padding:14px 18px 0}
+  .inv .who .n{font-family:'Caveat',cursive;font-size:34px;color:var(--od);font-weight:700;line-height:1}
+  .inv .who p{margin:6px 0;font-size:12px;line-height:1.5}
+  .inv .det{margin:8px 18px 0;background:#fff;border-radius:10px;padding:8px 12px;font-size:11px;line-height:1.6}
+  .inv .qr{position:absolute;right:14px;bottom:14px;width:52px;height:52px;background:repeating-linear-gradient(90deg,#111 0 4px,#fff 4px 7px),repeating-linear-gradient(0deg,#111 0 4px,#fff 4px 7px);background-blend-mode:multiply;border:4px solid #fff;outline:1px solid #ddd}
+  .inv .qrl{position:absolute;right:72px;bottom:18px;font-size:9px;color:var(--txt2);text-align:right}
+  .list{width:100%;aspect-ratio:1/1.414;padding:26px 26px;box-sizing:border-box;font-size:10px}
+  .list .hd{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid var(--o);padding-bottom:8px;margin-bottom:10px}
+  .list .hd h3{font-family:'Caveat',cursive;font-size:30px;margin:0;color:var(--o);line-height:1}
+  .list table{width:100%;border-collapse:collapse}
+  .list th{text-align:left;background:var(--peche);padding:5px 6px;font-size:9px;text-transform:uppercase}
+  .list td{padding:5px 6px;border-bottom:1px solid #eee}
+  .list .box{display:inline-block;width:10px;height:10px;border:1.5px solid #555;border-radius:2px}
+  .list .tot{margin-top:10px;font-weight:800;font-size:11px}
+</style>
+
+<div class="z">
+<!-- ================= ADMIN ================= -->
+<div class="label" style="margin-bottom:8px">Admin : connexion (adresse cachée, ex. /admin)</div>
+<div class="frame"><div class="login"><div class="card"><div class="hand" style="font-size:38px;color:#ec5e27">☀ Espace organisateur</div><input type="password" value="••••••••••"><span class="btn btn-o" style="width:100%;box-sizing:border-box;padding:12px">Se connecter</span></div></div></div>
+
+<div class="label" style="margin-bottom:8px">Admin : tableau de bord</div>
+<div class="frame">
+  <div class="adm">
+    <div class="side">
+      <div class="logo">☀ Coco · admin</div>
+      <a class="on" onclick="tab(this,'p1')">📋 Réponses</a>
+      <a onclick="tab(this,'p2')">💬 Livre d'or</a>
+      <a class="out">↗ Voir le site</a>
+      <a class="out">⎋ Déconnexion</a>
+    </div>
+    <div class="amain">
+      <div class="pane on" id="p1">
+        <h1>Réponses <span><span class="btn btn-l">⬇ Export CSV / Excel</span> <span class="btn btn-b">🖨 PDF liste des confirmés</span> <span class="btn btn-o">📄 Toutes les invitations (PDF)</span></span></h1>
+        <div class="tiles">
+          <div class="tile"><b>48</b><span>réponses reçues</span></div>
+          <div class="tile"><b>41</b><span>foyers confirmés</span></div>
+          <div class="tile"><b>87</b><span>personnes attendues</span></div>
+          <div class="tile"><b>7</b><span>ne viendront pas</span></div>
+        </div>
+        <div class="moms"><span>Accueil : 79</span><span>Dîner : 85</span><span>Soirée : 81</span><span>Brunch : 34</span></div>
+        <div class="bar"><input placeholder="🔍 Rechercher un nom, un e-mail…"><select><option>Tous</option><option>Viennent</option><option>Ne viennent pas</option></select><select><option>Tous les moments</option><option>Dîner</option></select></div>
+        <table class="t">
+          <tr><th>Invité</th><th>Contact</th><th>Présence</th><th>Pers.</th><th>Moments</th><th>Reçu le</th><th>Actions</th></tr>
+          <tr><td><b>Camille Martin</b><br><small>+ Léo Martin</small></td><td>camille@exemple.fr<br>06 12 34 56 78</td><td><span class="pill yes">Vient</span></td><td>2</td><td>Acc · Dîn · Soi</td><td>12/10</td><td><span class="ico" title="PDF invitation">📄</span><span class="ico" title="Renvoyer l'e-mail">✉</span><span class="ico" title="Modifier">✎</span><span class="ico" title="Supprimer">🗑</span></td></tr>
+          <tr><td><b>Thomas Durand</b></td><td>thomas@exemple.fr<br>—</td><td><span class="pill yes">Vient</span></td><td>1</td><td>Dîn · Soi · Bru</td><td>11/10</td><td><span class="ico">📄</span><span class="ico">✉</span><span class="ico">✎</span><span class="ico">🗑</span></td></tr>
+          <tr><td><b>Emma Wilson</b> <small>🇬🇧 EN</small><br><small>+ James Wilson, + Lily (enfant)</small></td><td>emma@example.co.uk<br>+44 7700 900123</td><td><span class="pill yes">Vient</span></td><td>3</td><td>Tous</td><td>10/10</td><td><span class="ico">📄</span><span class="ico">✉</span><span class="ico">✎</span><span class="ico">🗑</span></td></tr>
+          <tr><td><b>Paul Leroy</b></td><td>paul@exemple.fr<br>07 98 76 54 32</td><td><span class="pill no">Ne vient pas</span></td><td>0</td><td>—</td><td>09/10</td><td><span class="ico">✎</span><span class="ico">🗑</span></td></tr>
+        </table>
+      </div>
+      <div class="pane" id="p2">
+        <h1>Livre d'or <small style="font-size:13px;color:#6b4a39">Les messages s'affichent tout de suite ; masquez ou supprimez si besoin</small></h1>
+        <div class="gbrow"><div><p>« Joyeux anniversaire ma Coco, on sera là pour danser ! »</p><small>Julie &amp; Marc · 12/10</small></div><span><span class="btn btn-l">🙈 Masquer</span> <span class="btn btn-l">🗑 Supprimer</span></span></div>
+        <div class="gbrow"><div><p>« 40 ans de rires, vivement les 40 prochaines. »</p><small>Thomas · 11/10</small></div><span><span class="btn btn-l">🙈 Masquer</span> <span class="btn btn-l">🗑 Supprimer</span></span></div>
+        <div class="gbrow" style="opacity:.55"><div><p>« (message masqué) »</p><small>Anonyme · 10/10 · masqué</small></div><span><span class="btn btn-l">👁 Afficher</span> <span class="btn btn-l">🗑 Supprimer</span></span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= EMAIL ================= -->
+<div class="label" style="margin-bottom:8px">E-mail reçu par l'invité après confirmation (en FR ou EN selon sa langue)</div>
+<div class="frame">
+  <div class="mail">
+    <div class="mailbar">De : <b>Coco a 40 ans</b> &lt;invitation@…&gt;<br>Objet : <b>🎉 Ton invitation pour les 40 ans de Coco</b></div>
+    <div class="mailbody">
+      <div class="mcard">
+        <div class="top"><small style="font-weight:800">C'est confirmé !</small><h2>À très vite, Camille !</h2></div>
+        <div class="ph"><img src="https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=700&q=70" alt=""></div>
+        <div class="in">
+          Merci pour ta réponse ! Voici ton invitation personnelle en pièce jointe.
+          <div class="recap"><b>Samedi 14 juin 2027</b><br>2 personnes : Camille Martin, Léo Martin<br>Accueil 16 h · Dîner 19 h · Soirée 22 h<br>📍 Domaine des Tilleuls, Bordeaux</div>
+          <span class="btn btn-o">Voir le programme &amp; la carte</span> <span class="btn btn-l">Modifier ma réponse</span>
+          <div class="attach"><i>PDF</i> Invitation-Camille-Martin.pdf · 240 Ko</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= PDF ================= -->
+<div class="label" style="margin-bottom:8px">Les deux PDF</div>
+<div class="pdfs">
+  <div>
+    <div class="paper" style="max-width:340px">
+      <div class="inv">
+        <div class="band"><small>INVITATION PERSONNELLE</small><h2>Coco a 40 ans</h2></div>
+        <div class="pola"><img src="https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=400&q=70" alt=""></div>
+        <div class="who"><div class="n">Camille &amp; Léo Martin</div><p>sont attendus avec joie pour fêter les 40 ans de Coco</p></div>
+        <div class="det"><b>Samedi 14 juin 2027</b><br>16 h Accueil · 19 h Dîner : Domaine des Tilleuls, 12 allée des Tilleuls, Bordeaux<br>22 h Soirée : La Guinguette, quai Richelieu</div>
+        <div class="qrl">Programme, carte<br>&amp; infos pratiques →</div>
+        <div class="qr"></div>
+      </div>
+    </div>
+    <p style="text-align:center;font-weight:800;margin-top:12px">Invitation personnalisée (A5)</p>
+    <p style="text-align:center;font-size:13px;color:#6b4a39;margin-top:-6px">Jointe à l'e-mail · nom(s), moments choisis, QR code vers le site</p>
+  </div>
+
+  <div>
+    <div class="paper">
+      <div class="list">
+        <div class="hd"><div><h3>Coco a 40 ans · Liste des confirmés</h3><div>Samedi 14 juin 2027 · Édité le 12/10/2026</div></div><div style="text-align:right"><b style="font-size:16px;color:#c94412">87</b> pers.<br>41 foyers</div></div>
+        <table>
+          <tr><th>✓</th><th>Nom</th><th>Accompagnants</th><th>E-mail</th><th>Téléphone</th><th>Pers.</th><th>Moments</th></tr>
+          <tr><td><span class="box"></span></td><td><b>Camille Martin</b></td><td>Léo Martin</td><td>camille@exemple.fr</td><td>06 12 34 56 78</td><td>2</td><td>A·D·S</td></tr>
+          <tr><td><span class="box"></span></td><td><b>Thomas Durand</b></td><td>—</td><td>thomas@exemple.fr</td><td>—</td><td>1</td><td>D·S·B</td></tr>
+          <tr><td><span class="box"></span></td><td><b>Emma Wilson</b></td><td>James Wilson, Lily</td><td>emma@example.co.uk</td><td>+44 7700 900123</td><td>3</td><td>A·D·S·B</td></tr>
+          <tr><td><span class="box"></span></td><td><b>Julie Bernard</b></td><td>Marc Petit</td><td>julie@exemple.fr</td><td>06 55 44 33 22</td><td>2</td><td>A·D·S</td></tr>
+          <tr><td colspan="7" style="color:#999;text-align:center">… triée par ordre alphabétique …</td></tr>
+        </table>
+        <div class="tot">Totaux : Accueil 79 · Dîner 85 · Soirée 81 · Brunch 34</div>
+        <div style="margin-top:6px;color:#777">A = Accueil · D = Dîner · S = Soirée · B = Brunch · case ✓ à cocher le jour J</div>
+      </div>
+    </div>
+    <p style="text-align:center;font-weight:800;margin-top:12px">Liste des confirmés (A4) : à imprimer pour l'accueil</p>
+  </div>
+</div>
+</div>
+
+<script>
+function tab(a,id){document.querySelectorAll('.side a').forEach(function(x){x.classList.remove('on')});a.classList.add('on');document.querySelectorAll('.pane').forEach(function(p){p.classList.remove('on')});document.getElementById(id).classList.add('on');}
+</script>
+
+<p class="subtitle" style="margin-top:20px">Dites-moi ce qu'il faut ajouter, enlever ou changer (colonnes de la liste, contenu de l'invitation, QR code…).</p>
+    </div>
+  </div>
+
+</body>
+</html>
