@@ -1,0 +1,119 @@
+# Contenu de l'événement — voir LISEZMOI.md pour le détail de chaque champ.
+site:
+  titre: { fr: "Coco a 40 ans", en: "Coco turns 40" }
+  url_publique: "http://localhost:4321"
+  contact: { nom: "Julie", email: "contact@exemple.fr", telephone: "06 12 34 56 78" }
+
+theme:
+  couleurs: { principale: "#ec5e27", fond: "#fdfdf1", texte: "#3a2419", douce: "#fbd7c2" }
+  polices: { titres: "Caveat", texte: "Nunito" }
+
+evenement:
+  date_debut: "2027-06-14T16:00:00+02:00"
+  date_limite_rsvp: "2027-05-01"
+  lieu_court: { fr: "Domaine des Tilleuls, Bordeaux", en: "Domaine des Tilleuls, Bordeaux" }
+
+accueil:
+  accroche: { fr: "On fait la fête !", en: "Let's party!" }
+  photo_principale: photos/hero.jpg
+  photo_secondaire: photos/toast.jpg
+  legende_photo: { fr: "la bande, été 2024", en: "the gang, summer 2024" }
+
+histoire:
+  intro:
+    fr: "Quarante ans de fous rires, de voyages improvisés et de dîners qui finissent à 3 h du matin. Pour fêter ça, Coco réunit tous ceux qui ont compté, le temps d'une journée sous le soleil bordelais."
+    en: "Forty years of belly laughs, spur-of-the-moment trips and dinners that end at 3 a.m. To celebrate, Coco is gathering everyone who matters for a sunny day in Bordeaux."
+  chapitres:
+    - annee: "1987"
+      titre: { fr: "Une petite tornade est née", en: "A little whirlwind is born" }
+      texte:
+        fr: "Coco débarque un 14 juin, avec déjà ce rire qu'on reconnaît à l'autre bout d'une salle."
+        en: "Coco arrives on a 14th of June, already with that laugh you can recognise from across a room."
+      photo: photos/ballons.jpg
+      legende: { fr: "les premiers ballons", en: "the first balloons" }
+    - annee: "2009"
+      titre: { fr: "La bande se forme", en: "The gang comes together" }
+      texte:
+        fr: "Un appart' trop petit, une colocation trop bruyante et des amitiés qui ne se sont jamais défaites depuis."
+        en: "A flat too small, a flatshare too loud, and friendships that have lasted ever since."
+      photo: photos/hero.jpg
+      legende: { fr: "la bande, toujours", en: "the gang, always" }
+    - annee: "2027"
+      titre: { fr: "40 ans, et toujours en route", en: "40, and still on the road" }
+      texte:
+        fr: "Des voyages, des projets, des retrouvailles… et l'envie de réunir tout le monde pour une journée sous le soleil."
+        en: "Trips, projects, reunions… and the wish to bring everyone together for a day in the sun."
+      photo: photos/portrait.jpg
+      legende: { fr: "sur la route", en: "on the road" }
+
+galerie:
+  - { photo: photos/toast.jpg, legende: { fr: "Santé !", en: "Cheers!" } }
+  - { photo: photos/ballons.jpg }
+  - { photo: photos/portrait.jpg }
+  - { photo: photos/bar.jpg }
+  - { photo: photos/soiree.jpg }
+  - { photo: photos/diner.jpg }
+  - { photo: photos/hero.jpg }
+
+lieux:
+  - { id: domaine, nom: "Domaine des Tilleuls", adresse: "12 allée des Tilleuls, 33000 Bordeaux", lat: 44.8378, lng: -0.5800 }
+  - { id: guinguette, nom: "La Guinguette", adresse: "Quai Richelieu, 33000 Bordeaux", lat: 44.8435, lng: -0.5690 }
+  - { id: cafe-port, nom: "Café du Port", adresse: "Quai des Chartrons, 33000 Bordeaux", lat: 44.8550, lng: -0.5650 }
+
+moments:
+  - id: accueil
+    heure: "16:00"
+    titre: { fr: "Accueil", en: "Welcome" }
+    description: { fr: "Jardin du domaine", en: "In the estate garden" }
+    lieu: domaine
+    photo: photos/jardin.jpg
+  - id: diner
+    heure: "19:00"
+    titre: { fr: "Dîner", en: "Dinner" }
+    description: { fr: "Grande tablée sous les arbres", en: "Long table under the trees" }
+    lieu: domaine
+    photo: photos/diner.jpg
+  - id: soiree
+    heure: "22:00"
+    titre: { fr: "Soirée", en: "Party" }
+    description: { fr: "DJ & piste de danse", en: "DJ & dance floor" }
+    lieu: guinguette
+    photo: photos/soiree.jpg
+  - id: brunch
+    heure: "11:00"
+    jour: { fr: "Dimanche", en: "Sunday" }
+    titre: { fr: "Brunch", en: "Brunch" }
+    description: { fr: "Le lendemain, pour les courageux", en: "The day after, for the brave" }
+    lieu: cafe-port
+    photo: photos/bar.jpg
+
+infos:
+  hebergements:
+    - { nom: "Hôtel des Quais", etiquette: { fr: "Code COCO40 : -10 %", en: "Code COCO40: 10% off" }, distance: "400 m", prix: "~95 €/nuit", lien: "https://exemple.fr/hotel", photo: photos/bar.jpg, lat: 44.8410, lng: -0.5760 }
+    - { nom: "Gîte Les Chartrons", etiquette: { fr: "Idéal familles", en: "Great for families" }, distance: "1,5 km", prix: "~180 €/nuit", lien: "https://exemple.fr/gite", photo: photos/portrait.jpg, lat: 44.8480, lng: -0.5800 }
+    - { nom: "Auberge du Port", etiquette: { fr: "Petit budget", en: "Budget" }, distance: "2 km", prix: "~35 €/nuit", lien: "https://exemple.fr/auberge", photo: photos/hero.jpg }
+  tenue:
+    texte:
+      fr: "Chic et décontracté, couleurs chaudes bienvenues ! Prévois des chaussures plates : on danse sur l'herbe."
+      en: "Smart casual, warm colours welcome! Bring flat shoes: we'll be dancing on the grass."
+    couleurs: ["#ec5e27", "#fbd7c2", "#fdfdf1", "#c9822b", "#3a2419"]
+  cadeaux:
+    texte:
+      fr: "Ta présence est le plus beau des cadeaux. Pour ceux qui le souhaitent, une cagnotte finance le prochain voyage de Coco."
+      en: "Your presence is the best gift. If you wish, a group fund will pay for Coco's next trip."
+    lien_cagnotte: "https://exemple.fr/cagnotte"
+  acces:
+    texte:
+      fr: "Parking gratuit au domaine (60 places). Tram B arrêt « Les Tilleuls » à 5 min. Navette vers la Guinguette à 21 h 45."
+      en: "Free parking at the estate (60 spaces). Tram B, \"Les Tilleuls\" stop, 5 min walk. Shuttle to La Guinguette at 9:45 pm."
+  faq:
+    - { question: { fr: "Les enfants sont-ils les bienvenus ?", en: "Are children welcome?" }, reponse: { fr: "Oui ! Un coin jeux et une baby-sitter sont prévus de 16 h à 23 h.", en: "Yes! A play area and a babysitter are available from 4 pm to 11 pm." } }
+    - { question: { fr: "Puis-je venir accompagné(e) ?", en: "Can I bring someone?" }, reponse: { fr: "Indique simplement tes accompagnants dans le formulaire RSVP.", en: "Just list them in the RSVP form." } }
+
+rsvp:
+  titre: { fr: "Tu viens ?", en: "Are you coming?" }
+  message_merci: { fr: "Merci ! Ton invitation arrive par e-mail.", en: "Thank you! Your invitation is on its way by email." }
+
+email:
+  expediteur_nom: "Coco a 40 ans"
+  objet: { fr: "🎉 Ton invitation pour les 40 ans de Coco", en: "🎉 Your invitation to Coco's 40th" }
