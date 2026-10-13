@@ -1,0 +1,103 @@
+---
+import Base from '../../layouts/Base.astro';
+import PageHead from '../../components/PageHead.astro';
+import { Image } from 'astro:assets';
+import { findLieu, t } from '../../lib/event';
+import { googleMapsUrl, wazeUrl } from '../../lib/geo';
+import { formatDate, formatHeure, ui } from '../../lib/i18n';
+import { getEvent } from '../../lib/load-event';
+import { photo } from '../../lib/photos';
+import type { MapData } from '../../scripts/map';
+
+const lang = Astro.locals.lang;
+const ev = getEvent();
+const etapes = ev.moments.map((m, i) => {
+  const lieu = findLieu(ev, m.lieu);
+  return { m, lieu, num: i + 1, titre: `${t(m.jour, lang) ? t(m.jour, lang) + ' ' : ''}${formatHeure(m.heure, lang)} · ${t(m.titre, lang)}` };
+});
+const mapData: MapData = {
+  lieux: etapes.map((e) => ({ id: e.lieu.id, num: e.num, nom: e.lieu.nom, titre: e.titre, lat: e.lieu.lat, lng: e.lieu.lng })),
+  hebergements: ev.infos.hebergements
+    .filter((h) => h.lat !== undefined && h.lng !== undefined)
+    .map((h) => ({ nom: h.nom, lat: h.lat!, lng: h.lng! })),
+  legendeHebergement: ui(lang, 'programme.legende_hebergements'),
+};
+---
+<Base lang={lang} current="programme" title={ui(lang, 'programme.titre')}>
+  <PageHead title={ui(lang, 'programme.titre')} subtitle={formatDate(ev.evenement.date_debut, lang) + ' · ' + t(ev.evenement.lieu_court, lang)} />
+
+  <div class="prog container">
+    <ol class="etapes">
+      {etapes.map((e) => (
+        <li class="etape">
+          {e.m.photo && <Image src={photo(e.m.photo)} alt="" width={240} height={300} class="etape-img" />}
+          <div class="etape-txt">
+            <h2 class="hand"><span aria-hidden="true">{e.num} · </span>{e.titre}</h2>
+            <p class="desc">{t(e.m.description, lang)}</p>
+            <p class="adresse"><b>{e.lieu.nom}</b><br />{e.lieu.adresse}</p>
+            <div class="actions">
+              <a class="btn btn-plein btn-petit" href={googleMapsUrl(e.lieu.lat, e.lieu.lng)} target="_blank" rel="noopener">{ui(lang, 'programme.itineraire')}</a>
+              <a class="btn btn-contour btn-petit" href={wazeUrl(e.lieu.lat, e.lieu.lng)} target="_blank" rel="noopener">{ui(lang, 'programme.waze')}</a>
+              <button class="btn btn-contour btn-petit voir" type="button" data-lieu={e.lieu.id}>{ui(lang, 'programme.voir_carte')}</button>
+            </div>
+          </div>
+        </li>
+      ))}
+    </ol>
+    <div class="carte-box">
+      <div id="carte" role="region" aria-label={ui(lang, 'programme.titre')}></div>
+      <p class="legende">
+        <span><i style="background:var(--c-principale-fonce)"></i>{ui(lang, 'programme.legende_lieux')}</span>
+        {mapData.hebergements.length > 0 && <span><i style="background:var(--c-texte)"></i>{ui(lang, 'programme.legende_hebergements')}</span>}
+      </p>
+    </div>
+  </div>
+
+  {ev.infos.hebergements.length > 0 && (
+    <div class="dormir container">
+      <p>{ui(lang, 'programme.dormir')}</p>
+      <a class="btn btn-plein btn-petit" href={`/${lang}/infos#dormir`}>{ui(lang, 'programme.dormir_lien')}</a>
+    </div>
+  )}
+
+  <script type="application/json" id="map-data" set:html={JSON.stringify(mapData).replace(/</g, '\u003c')} />
+</Base>
+
+<style>
+  .prog { display: grid; grid-template-columns: 1fr 1.15fr; gap: 32px; padding-block: 24px 40px; align-items: start; }
+  .etapes { list-style: none; padding: 0; margin: 0; }
+  .etape { display: grid; grid-template-columns: 110px 1fr; gap: 14px; background: #fff; border-radius: 18px; overflow: hidden; margin-bottom: 16px; box-shadow: 0 6px 16px rgba(58,36,25,.1); }
+  .etape-img { width: 100%; height: 100%; min-height: 170px; object-fit: cover; }
+  .etape-txt { padding: 14px 16px 16px 0; }
+  .etape h2 { font-size: 1.9rem; color: var(--c-principale); margin: 0; }
+  .desc { margin: 2px 0 6px; }
+  .adresse { color: var(--c-texte-doux); font-size: .95rem; margin: 0 0 10px; }
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+  .carte-box { position: sticky; top: 12px; }
+  #carte { height: 540px; border-radius: 18px; border: 6px solid #fff; box-shadow: 0 10px 24px rgba(58,36,25,.2); z-index: 0; }
+  .legende { display: flex; gap: 18px; flex-wrap: wrap; font-weight: 700; font-size: .95rem; }
+  .legende i { display: inline-block; width: 14px; height: 14px; border-radius: 50%; vertical-align: -2px; margin-right: 6px; }
+  .dormir { background: var(--c-douce); border-radius: 18px; padding: 18px 24px; display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 40px; flex-wrap: wrap; }
+  .dormir p { margin: 0; font-weight: 700; }
+  :global(.pin) { width: 34px; height: 34px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); display: flex; align-items: center; justify-content: center; border: 3px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,.35); }
+  :global(.pin span) { transform: rotate(45deg); color: #fff; font-weight: 800; font-size: 14px; }
+  @media (max-width: 860px) {
+    .prog { grid-template-columns: 1fr; }
+    .carte-box { position: static; }
+    #carte { height: 380px; }
+  }
+  @media (max-width: 420px) { .etape { grid-template-columns: 1fr; } .etape-img { min-height: 0; height: 160px; } .etape-txt { padding: 0 16px 16px; } }
+</style>
+
+<script>
+  import { mountMap, type MapData } from '../../scripts/map';
+  const el = document.getElementById('carte');
+  const data = JSON.parse(document.getElementById('map-data')!.textContent!) as MapData;
+  if (el) mountMap(el, data);
+  document.querySelectorAll<HTMLButtonElement>('button.voir').forEach((b) =>
+    b.addEventListener('click', () => {
+      document.dispatchEvent(new CustomEvent('focus-lieu', { detail: b.dataset.lieu }));
+      if (window.matchMedia('(max-width: 860px)').matches) el?.scrollIntoView({ behavior: 'smooth' });
+    }),
+  );
+</script>

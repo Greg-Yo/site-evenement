@@ -55,3 +55,20 @@ test.describe('Notre histoire', () => {
     await expect(dlg).toBeHidden();
   });
 });
+
+test.describe('Programme & lieux', () => {
+  test('étapes, liens d’itinéraire et carte', async ({ page }) => {
+    await page.goto('/fr/programme');
+    await expect(page.getByRole('heading', { level: 2, name: /Dîner/ })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Itinéraire Google Maps' }).first())
+      .toHaveAttribute('href', /google\.com\/maps\/dir\/\?api=1&destination=44\.8378/);
+    await expect(page.locator('#carte .leaflet-marker-icon')).toHaveCount(6);
+    await page.getByRole('button', { name: 'Voir sur la carte' }).nth(2).click();
+    await expect(page.locator('.leaflet-popup')).toContainText('La Guinguette');
+  });
+
+  test('version anglaise des heures', async ({ page }) => {
+    await page.goto('/en/programme');
+    await expect(page.getByRole('heading', { level: 2, name: /7 pm · Dinner/ })).toBeVisible();
+  });
+});
