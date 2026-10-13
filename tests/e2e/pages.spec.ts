@@ -67,6 +67,14 @@ test.describe('Programme & lieux', () => {
     await expect(page.locator('.leaflet-popup')).toContainText('La Guinguette');
   });
 
+  test('les données de la carte ne contiennent aucun chevron brut', async ({ page }) => {
+    await page.goto('/fr/programme');
+    const html = await page.locator('#map-data').evaluate((el) => el.innerHTML);
+    expect(html).not.toContain('<');
+    const lieux = await page.locator('#map-data').evaluate((el) => JSON.parse(el.textContent!).lieux);
+    expect(lieux).toHaveLength(4);
+  });
+
   test('version anglaise des heures', async ({ page }) => {
     await page.goto('/en/programme');
     await expect(page.getByRole('heading', { level: 2, name: /7 pm · Dinner/ })).toBeVisible();

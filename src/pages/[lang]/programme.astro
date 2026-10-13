@@ -60,7 +60,7 @@ const mapData: MapData = {
     </div>
   )}
 
-  <script type="application/json" id="map-data" set:html={JSON.stringify(mapData).replace(/</g, '\u003c')} />
+  <script type="application/json" id="map-data" set:html={JSON.stringify(mapData).replace(/</g, '\\u003c')} />
 </Base>
 
 <style>
