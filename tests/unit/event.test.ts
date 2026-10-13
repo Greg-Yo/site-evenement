@@ -1,0 +1,90 @@
+import { describe, expect, test } from 'vitest';
+import { parseEvent, t, EventConfigError } from '../../src/lib/event';
+
+const PHOTOS = ['photos/hero.jpg', 'photos/a.jpg'];
+const base = `
+site:
+  titre: { fr: "Coco a 40 ans", en: "Coco turns 40" }
+  url_publique: "https://exemple.fr"
+  contact: { nom: "Julie", email: "julie@exemple.fr" }
+evenement:
+  date_debut: "2027-06-14T16:00:00+02:00"
+  date_limite_rsvp: "2027-05-01"
+  lieu_court: "Bordeaux"
+accueil:
+  accroche: { fr: "On fait la fête !" }
+  photo_principale: photos/hero.jpg
+histoire:
+  intro: "Il était une fois"
+lieux:
+  - { id: domaine, nom: "Domaine", adresse: "12 allée", lat: 44.83, lng: -0.58 }
+moments:
+  - { id: diner, heure: "19:00", titre: { fr: "Dîner", en: "Dinner" }, lieu: domaine }
+rsvp:
+  titre: { fr: "Tu viens ?", en: "Are you coming?" }
+  message_merci: "Merci !"
+email:
+  expediteur_nom: "Coco"
+  objet: "Ton invitation"
+`;
+
+function problemsOf(yaml: string, photos = PHOTOS): string[] {
+  try { parseEvent(yaml, photos); return []; }
+  catch (e) { if (e instanceof EventConfigError) return e.problems; throw e; }
+}
+
+describe('parseEvent', () => {
+  test('accepte une configuration minimale et normalise les textes', () => {
+    const ev = parseEvent(base, PHOTOS);
+    expect(ev.evenement.lieu_court).toEqual({ fr: 'Bordeaux' });
+    expect(ev.galerie).toEqual([]);
+    expect(ev.infos.hebergements).toEqual([]);
+    expect(ev.infos.faq).toEqual([]);
+    expect(ev.histoire.chapitres).toEqual([]);
+  });
+
+  test('signale un lieu de moment inconnu avec son chemin', () => {
+    const p = problemsOf(base.replace('lieu: domaine }', 'lieu: salle }'));
+    expect(p).toContain('moments[0].lieu : le lieu « salle » n’existe pas dans « lieux »');
+  });
+
+  test('signale une photo absente du dossier', () => {
+    const p = problemsOf(base.replace('photos/hero.jpg', 'photos/absente.jpg'));
+    expect(p).toContain('accueil.photo_principale : fichier introuvable evenement/photos/absente.jpg');
+  });
+
+  test('signale un identifiant de moment en double', () => {
+    const yaml = base.replace(
+      'moments:\n',
+      'moments:\n  - { id: diner, heure: "20:00", titre: "Bis", lieu: domaine }\n',
+    );
+    expect(problemsOf(yaml)).toContain('moments[1].id : identifiant « diner » utilisé plusieurs fois');
+  });
+
+  test('refuse une date limite postérieure à l’événement', () => {
+    const p = problemsOf(base.replace('2027-05-01', '2027-07-01'));
+    expect(p).toContain('evenement.date_limite_rsvp : doit précéder evenement.date_debut');
+  });
+
+  test('signale un champ obligatoire manquant', () => {
+    const p = problemsOf(base.replace(/rsvp:\n(.*\n){2}/, ''));
+    expect(p.some((x) => x.startsWith('rsvp :'))).toBe(true);
+  });
+
+  test('signale un YAML mal formé', () => {
+    expect(problemsOf('site: [')[0]).toMatch(/^YAML invalide/);
+  });
+});
+
+describe('t', () => {
+  test('retourne la langue demandée', () => {
+    expect(t({ fr: 'Dîner', en: 'Dinner' }, 'en')).toBe('Dinner');
+  });
+  test('retombe sur le français si la traduction manque ou est vide', () => {
+    expect(t({ fr: 'Dîner' }, 'en')).toBe('Dîner');
+    expect(t({ fr: 'Dîner', en: '' }, 'en')).toBe('Dîner');
+  });
+  test('retourne une chaîne vide pour un texte absent', () => {
+    expect(t(undefined, 'fr')).toBe('');
+  });
+});
