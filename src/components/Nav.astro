@@ -40,9 +40,9 @@ const path = Astro.url.pathname;
   nav a { color: var(--c-fond); text-decoration: none; font-weight: 800; font-size: 1.15rem; padding-bottom: 3px; white-space: nowrap; }
   nav a[aria-current='page'] { border-bottom: 3px solid var(--c-fond); }
   .lang { background: var(--c-fond); border-radius: 10px; padding: 4px 10px; white-space: nowrap; }
-  .lang a { color: var(--c-principale-fonce); text-decoration: none; }
-  .lang a[aria-current='true'] { text-decoration: underline; text-underline-offset: 3px; }
-  .lang span { color: var(--c-principale-fonce); }
+  .nav .lang a { color: var(--c-principale-fonce); text-decoration: none; }
+  .nav .lang a[aria-current='true'] { text-decoration: underline; text-underline-offset: 3px; }
+  .nav .lang span { color: var(--c-principale-fonce); }
   .burger { display: none; background: none; border: 2px solid var(--c-fond); color: var(--c-fond); border-radius: 10px; font-size: 1.3rem; padding: 2px 10px; cursor: pointer; }
   @media (max-width: 900px) {
     .burger { display: block; order: 3; }
