@@ -31,3 +31,27 @@ test.describe('Accueil', () => {
     expect(overflow).toBeLessThanOrEqual(0);
   });
 });
+
+test.describe('Notre histoire', () => {
+  test('frise et galerie', async ({ page }) => {
+    await page.goto('/fr/histoire');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Notre histoire');
+    for (const annee of ['1987', '2009', '2027']) await expect(page.getByText(annee, { exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'La galerie' })).toBeVisible();
+  });
+
+  test('la visionneuse s’ouvre, défile et se ferme au clavier', async ({ page }) => {
+    await page.goto('/fr/histoire');
+    await page.locator('a[data-lightbox]').first().click();
+    const dlg = page.locator('dialog#lightbox');
+    await expect(dlg).toBeVisible();
+    await expect(dlg.locator('figcaption')).toHaveText('Santé !');
+    await page.keyboard.press('ArrowRight');
+    await expect(dlg.locator('img')).toHaveAttribute('src', /ballons/);
+    await page.keyboard.press('ArrowLeft');
+    await page.keyboard.press('ArrowLeft');
+    await expect(dlg.locator('img')).toHaveAttribute('src', /hero/);
+    await page.keyboard.press('Escape');
+    await expect(dlg).toBeHidden();
+  });
+});

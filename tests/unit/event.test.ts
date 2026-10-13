@@ -43,6 +43,12 @@ describe('parseEvent', () => {
     expect(ev.histoire.chapitres).toEqual([]);
   });
 
+  test('galerie et chapitres absents donnent des listes vides', () => {
+    const ev = parseEvent(base, PHOTOS);
+    expect(ev.galerie).toHaveLength(0);
+    expect(ev.histoire.chapitres).toHaveLength(0);
+  });
+
   test('signale un lieu de moment inconnu avec son chemin', () => {
     const p = problemsOf(base.replace('lieu: domaine }', 'lieu: salle }'));
     expect(p).toContain('moments[0].lieu : le lieu « salle » n’existe pas dans « lieux »');
