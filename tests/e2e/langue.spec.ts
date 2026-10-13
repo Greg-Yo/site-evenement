@@ -44,6 +44,14 @@ test('une langue inconnue renvoie vers la racine', async ({ page }) => {
   await expect(page).toHaveURL(/\/(fr|en)\/$/);
 });
 
+for (const chemin of ['/FR/', '/fra/', '/xyz/histoire']) {
+  test(`le préfixe invalide ${chemin} renvoie vers une page valide`, async ({ page }) => {
+    await page.goto(chemin);
+    await expect(page).toHaveURL(/\/(fr|en)\/$/);
+    await expect(page.locator('html')).toHaveAttribute('lang', /^(fr|en)$/);
+  });
+}
+
 test('la navigation contient les 5 pages', async ({ page }) => {
   await page.goto('/fr/');
   // Locator CSS plutôt que getByRole : sur téléphone le menu est fermé, donc masqué pour l'arbre d'accessibilité.

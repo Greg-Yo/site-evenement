@@ -20,7 +20,8 @@ export const onRequest = defineMiddleware(async (ctx, next) => {
   }
 
   const first = ctx.url.pathname.split('/')[1];
-  if (/^[a-z]{2}$/.test(first) && !isLang(first)) return ctx.redirect('/', 302);
+  const hitsLangPage = ctx.routePattern === '/[lang]' || ctx.routePattern.startsWith('/[lang]/');
+  if (hitsLangPage && !isLang(first)) return ctx.redirect('/', 302);
   if (isLang(first)) {
     ctx.locals.lang = first;
     ctx.cookies.set('lang', first, { path: '/', maxAge: 60 * 60 * 24 * 365, sameSite: 'lax' });
