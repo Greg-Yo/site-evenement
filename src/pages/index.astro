@@ -1,0 +1,5 @@
+---
+import { detectLang } from '../lib/i18n';
+const lang = detectLang(Astro.cookies.get('lang')?.value, Astro.request.headers.get('accept-language'));
+return Astro.redirect(`/${lang}/`, 302);
+---

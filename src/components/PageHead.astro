@@ -1,0 +1,10 @@
+---
+import Wave from './Wave.astro';
+interface Props { title: string; subtitle?: string }
+const { title, subtitle } = Astro.props;
+---
+<div class="page-head zone-orange">
+  <h1>{title}</h1>
+  {subtitle && <p>{subtitle}</p>}
+</div>
+<Wave />

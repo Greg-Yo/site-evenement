@@ -1,0 +1,17 @@
+---
+import type { Lang } from '../lib/event';
+import { formatDate, ui } from '../lib/i18n';
+import { t } from '../lib/event';
+import { getEvent } from '../lib/load-event';
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const ev = getEvent();
+---
+<footer>
+  {t(ev.site.titre, lang)} · {formatDate(ev.evenement.date_debut, lang)} · {ui(lang, 'pied.question')}
+  <a href={`mailto:${ev.site.contact.email}`}>{ev.site.contact.email}</a>
+</footer>
+<style>
+  footer { background: var(--c-texte); color: var(--c-fond); text-align: center; padding: 20px 16px; font-size: .95rem; }
+  footer a { color: var(--c-fond); }
+</style>

@@ -1,0 +1,7 @@
+---
+interface Props { color?: string }
+const { color = 'var(--c-principale)' } = Astro.props;
+---
+<svg class="wave" viewBox="0 0 1000 40" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+  <path d="M0 0h1000v10c-120 30-240 30-360 10S400-10 280 10 80 40 0 18z" style={`fill:${color}`} />
+</svg>
