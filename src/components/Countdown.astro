@@ -1,0 +1,30 @@
+---
+import type { Lang } from '../lib/event';
+import { ui } from '../lib/i18n';
+import { remaining } from '../scripts/countdown';
+interface Props { target: string; lang: Lang }
+const { target, lang } = Astro.props;
+const r = remaining(Date.now(), Date.parse(target));
+const unites = ['jours', 'heures', 'minutes', 'secondes'] as const;
+---
+<div class="countdown" data-countdown={target} role="timer" aria-live="off">
+  <ul class="cd-cases" hidden={r.passe}>
+    {unites.map((u) => (
+      <li><b data-unit={u} class="hand">{String(r[u]).padStart(u === 'jours' ? 1 : 2, '0')}</b>{ui(lang, `compte.${u}`)}</li>
+    ))}
+  </ul>
+  <p class="cd-passe hand" hidden={!r.passe}>{ui(lang, 'compte.passe')}</p>
+</div>
+<style>
+  .countdown { padding: 8px 16px 24px; }
+  ul { list-style: none; margin: 0; padding: 0; display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; }
+  ul[hidden], p[hidden] { display: none; }
+  li { background: #fff; border-radius: 18px; padding: 12px 18px; text-align: center; min-width: 80px; box-shadow: 0 6px 16px rgba(236,94,39,.18); font-weight: 700; color: var(--c-texte-doux); }
+  b { display: block; font-size: 2.6rem; line-height: 1; color: var(--c-principale); }
+  .cd-passe { text-align: center; font-size: 2.6rem; color: var(--c-principale); margin: 0; }
+  @media (max-width: 420px) { li { min-width: 64px; padding: 10px 10px; } b { font-size: 2rem; } }
+</style>
+<script>
+  import { mountCountdowns } from '../scripts/countdown';
+  mountCountdowns();
+</script>

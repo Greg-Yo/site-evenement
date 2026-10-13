@@ -1,5 +1,117 @@
 ---
 import Base from '../../layouts/Base.astro';
+import Countdown from '../../components/Countdown.astro';
+import Polaroid from '../../components/Polaroid.astro';
+import Wave from '../../components/Wave.astro';
+import { Image } from 'astro:assets';
+import { findLieu, t } from '../../lib/event';
+import { formatDate, formatHeure, ui } from '../../lib/i18n';
+import { getEvent } from '../../lib/load-event';
+import { photo } from '../../lib/photos';
+
 const lang = Astro.locals.lang;
+const ev = getEvent();
+const titre = t(ev.site.titre, lang);
+const apercuMoments = ev.moments.slice(0, 3);
+const souvenirs = ev.galerie.slice(0, 5);
+const rotations = [-6, 4, -2, 7, -4];
 ---
-<Base lang={lang} current="accueil"><p class="container">…</p></Base>
+<Base lang={lang} current="accueil">
+  <section class="hero zone-orange">
+    <div class="hero-in">
+      <div class="hero-txt">
+        <span class="kicker">{t(ev.accueil.accroche, lang)}</span>
+        <h1 class="hand">{titre}</h1>
+        <p class="meta">{formatDate(ev.evenement.date_debut, lang)} · {t(ev.evenement.lieu_court, lang)}</p>
+        <a class="btn btn-clair" href={`/${lang}/rsvp`}>{ui(lang, 'accueil.cta')}</a>
+      </div>
+      <div class="hero-photos">
+        <Polaroid src={photo(ev.accueil.photo_principale)} alt="" caption={t(ev.accueil.legende_photo, lang) || undefined} rotate={3} width={520} class="photo1" />
+        {ev.accueil.photo_secondaire && (
+          <Polaroid src={photo(ev.accueil.photo_secondaire)} alt="" tape={false} rotate={-8} width={180} ratio="1/1" class="photo2" />
+        )}
+      </div>
+    </div>
+  </section>
+  <Wave />
+  <Countdown target={ev.evenement.date_debut} lang={lang} />
+
+  <section class="container histoire">
+    {ev.histoire.chapitres.at(-1)?.photo && (
+      <Polaroid src={photo(ev.histoire.chapitres.at(-1)!.photo!)} alt="" rotate={-3} width={360} ratio="4/5" />
+    )}
+    <div>
+      <h2 class="titre-section">{ui(lang, 'nav.histoire')}</h2>
+      <p>{t(ev.histoire.intro, lang)}</p>
+      <a href={`/${lang}/histoire`}>{ui(lang, 'accueil.histoire_lien')}</a>
+    </div>
+  </section>
+
+  <section class="programme">
+    <div class="container">
+      <h2 class="titre-section centre" style="color:var(--c-texte)">{ui(lang, 'accueil.programme')}</h2>
+      <ul class="cartes">
+        {apercuMoments.map((m) => (
+          <li class="carte">
+            {m.photo && <Image src={photo(m.photo)} alt="" width={400} height={240} class="carte-img" />}
+            <div class="carte-txt">
+              <h3 class="hand">{t(m.jour, lang) && `${t(m.jour, lang)} `}{formatHeure(m.heure, lang)} · {t(m.titre, lang)}</h3>
+              <p>{t(m.description, lang)}</p>
+              <p class="lieu">📍 {findLieu(ev, m.lieu).nom}</p>
+            </div>
+          </li>
+        ))}
+      </ul>
+      <p class="centre"><a class="btn btn-plein" href={`/${lang}/programme`}>{ui(lang, 'accueil.carte')}</a></p>
+    </div>
+  </section>
+
+  {souvenirs.length > 0 && (
+    <section class="souvenirs container">
+      <h2 class="titre-section centre">{ui(lang, 'accueil.souvenirs')}</h2>
+      <div class="bande">
+        {souvenirs.map((g, i) => (
+          <Polaroid src={photo(g.photo)} alt={t(g.legende, lang)} tape={false} rotate={rotations[i]} width={200} ratio="1/1" />
+        ))}
+      </div>
+    </section>
+  )}
+
+  <section class="tu-viens zone-orange">
+    <h2 class="hand">{t(ev.rsvp.titre, lang)}</h2>
+    <p>{ui(lang, 'accueil.avant')} {formatDate(ev.evenement.date_limite_rsvp + 'T12:00:00+00:00', lang)}.</p>
+    <a class="btn btn-clair" href={`/${lang}/rsvp`}>{ui(lang, 'accueil.confirmer')}</a>
+  </section>
+</Base>
+
+<style>
+  .hero { padding: 24px 16px 8px; }
+  .hero-in { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: 1.05fr .95fr; gap: 32px; align-items: center; }
+  .kicker { display: inline-block; background: var(--c-fond); color: var(--c-principale-fonce); font-weight: 800; padding: 4px 12px; border-radius: 10px; }
+  .hero h1 { font-size: clamp(3.4rem, 10vw, 6rem); line-height: .9; margin: 16px 0 10px; }
+  .hero .meta { margin: 0 0 24px; }
+  .hero-photos { position: relative; padding: 12px; }
+  .hero-photos :global(.photo2) { position: absolute; width: 38%; left: -6%; bottom: -8%; }
+  .histoire { display: grid; grid-template-columns: .8fr 1.2fr; gap: 48px; align-items: center; padding-block: 32px 48px; }
+  .programme { background: var(--c-douce); padding: 40px 0 48px; }
+  .centre { text-align: center; }
+  .cartes { list-style: none; padding: 0; margin: 0 0 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; }
+  .carte { background: var(--c-fond); border-radius: 18px; overflow: hidden; box-shadow: 0 6px 18px rgba(58,36,25,.12); }
+  .carte-img { width: 100%; height: 160px; object-fit: cover; }
+  .carte-txt { padding: 14px 18px 18px; }
+  .carte h3 { font-size: 1.9rem; color: var(--c-principale); margin: 0 0 4px; }
+  .carte p { margin: 0; }
+  .carte .lieu { color: var(--c-texte-doux); font-size: .95rem; margin-top: 4px; }
+  .souvenirs { padding-block: 48px; }
+  .bande { display: flex; justify-content: center; flex-wrap: wrap; }
+  .bande :global(.pola) { width: 180px; margin: 0 -6px 12px; }
+  .tu-viens { text-align: center; padding: 48px 16px; }
+  .tu-viens h2 { font-size: clamp(3rem, 8vw, 3.6rem); margin: 0 0 8px; }
+  .tu-viens p { margin: 0 0 24px; }
+  @media (max-width: 760px) {
+    .hero-in, .histoire { grid-template-columns: 1fr; }
+    .hero-txt { text-align: center; order: 2; }
+    .hero-photos { order: 1; }
+    .bande :global(.pola) { width: 140px; }
+  }
+</style>
