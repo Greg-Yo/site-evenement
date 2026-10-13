@@ -2,7 +2,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
 export type MapData = {
-  lieux: { id: string; num: number; nom: string; titre: string; lat: number; lng: number }[];
+  lieux: { id: string; nums: number[]; nom: string; titres: string[]; lat: number; lng: number }[];
   hebergements: { nom: string; lat: number; lng: number }[];
   legendeHebergement: string;
 };
@@ -12,7 +12,7 @@ const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&l
 function pin(color: string, label: string) {
   return L.divIcon({
     className: '',
-    html: `<div class="pin" style="background:${color}"><span>${esc(label)}</span></div>`,
+    html: `<div class="pin${label.length > 2 ? ' long' : ''}" style="background:${color}"><span>${esc(label)}</span></div>`,
     iconSize: [34, 34],
     iconAnchor: [17, 34],
     popupAnchor: [0, -30],
@@ -33,9 +33,9 @@ export function mountMap(el: HTMLElement, data: MapData): void {
   const points: L.LatLngExpression[] = [];
 
   for (const l of data.lieux) {
-    const m = L.marker([l.lat, l.lng], { icon: pin(orange, String(l.num)), title: l.nom })
+    const m = L.marker([l.lat, l.lng], { icon: pin(orange, l.nums.join('·')), title: l.nom })
       .addTo(map)
-      .bindPopup(`<b>${esc(l.titre)}</b><br>${esc(l.nom)}`);
+      .bindPopup(`${l.titres.map((t) => `<b>${esc(t)}</b>`).join('<br>')}<br>${esc(l.nom)}`);
     if (!markers.has(l.id)) markers.set(l.id, m);
     points.push([l.lat, l.lng]);
   }

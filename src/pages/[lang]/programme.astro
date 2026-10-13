@@ -16,7 +16,10 @@ const etapes = ev.moments.map((m, i) => {
   return { m, lieu, num: i + 1, titre: `${t(m.jour, lang) ? t(m.jour, lang) + ' ' : ''}${formatHeure(m.heure, lang)} · ${t(m.titre, lang)}` };
 });
 const mapData: MapData = {
-  lieux: etapes.map((e) => ({ id: e.lieu.id, num: e.num, nom: e.lieu.nom, titre: e.titre, lat: e.lieu.lat, lng: e.lieu.lng })),
+  lieux: ev.lieux
+    .map((l) => ({ l, groupe: etapes.filter((e) => e.lieu.id === l.id) }))
+    .filter(({ groupe }) => groupe.length > 0)
+    .map(({ l, groupe }) => ({ id: l.id, nums: groupe.map((e) => e.num), nom: l.nom, titres: groupe.map((e) => e.titre), lat: l.lat, lng: l.lng })),
   hebergements: ev.infos.hebergements
     .filter((h) => h.lat !== undefined && h.lng !== undefined)
     .map((h) => ({ nom: h.nom, lat: h.lat!, lng: h.lng! })),
@@ -81,6 +84,7 @@ const mapData: MapData = {
   .dormir p { margin: 0; font-weight: 700; }
   :global(.pin) { width: 34px; height: 34px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); display: flex; align-items: center; justify-content: center; border: 3px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,.35); }
   :global(.pin span) { transform: rotate(45deg); color: #fff; font-weight: 800; font-size: 14px; }
+  :global(.pin.long span) { font-size: 11px; letter-spacing: -.5px; }
   @media (max-width: 860px) {
     .prog { grid-template-columns: 1fr; }
     .carte-box { position: static; }
