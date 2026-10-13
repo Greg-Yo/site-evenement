@@ -51,6 +51,7 @@ const DICT = {
   'histoire.titre': { fr: 'Notre histoire', en: 'Our story' },
   'histoire.galerie': { fr: 'La galerie', en: 'The gallery' },
   'histoire.galerie_aide': { fr: "Clique sur une photo pour l'agrandir", en: 'Click a photo to enlarge it' },
+  'galerie.photo': { fr: 'Photo', en: 'Photo' },
   'galerie.fermer': { fr: 'Fermer', en: 'Close' },
   'galerie.precedente': { fr: 'Photo précédente', en: 'Previous photo' },
   'galerie.suivante': { fr: 'Photo suivante', en: 'Next photo' },

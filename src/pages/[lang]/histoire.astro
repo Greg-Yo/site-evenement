@@ -42,9 +42,9 @@ const galerie = await Promise.all(
         <h2 class="titre-section" style="color:var(--c-texte)">{ui(lang, 'histoire.galerie')}</h2>
         <p class="aide">{ui(lang, 'histoire.galerie_aide')}</p>
         <ul class="mosaique">
-          {galerie.map((g) => (
+          {galerie.map((g, n) => (
             <li class={g.forme}>
-              <a href={g.grand} data-lightbox data-caption={t(g.legende, lang)}>
+              <a href={g.grand} data-lightbox data-caption={t(g.legende, lang)} aria-label={t(g.legende, lang) || `${ui(lang, 'galerie.photo')} ${n + 1}`}>
                 <Image src={photo(g.photo)} alt={t(g.legende, lang)} width={600} />
               </a>
             </li>

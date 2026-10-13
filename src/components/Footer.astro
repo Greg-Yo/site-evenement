@@ -8,7 +8,7 @@ const { lang } = Astro.props;
 const ev = getEvent();
 ---
 <footer>
-  {t(ev.site.titre, lang)} · {formatDate(ev.evenement.date_debut, lang)} · {ui(lang, 'pied.question')}
+  {t(ev.site.titre, lang)} · {formatDate(ev.evenement.date_debut, lang)} · {ui(lang, 'pied.question')}{" "}
   <a href={`mailto:${ev.site.contact.email}`}>{ev.site.contact.email}</a>
 </footer>
 <style>
