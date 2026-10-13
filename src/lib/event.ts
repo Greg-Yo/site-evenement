@@ -1,11 +1,15 @@
 import { parse as parseYaml } from 'yaml';
 import { z } from 'zod';
 
+z.config(z.locales.fr());
+
 export type Lang = 'fr' | 'en';
 export type Localized = { fr: string; en?: string };
 
 const L = z
-  .union([z.string(), z.object({ fr: z.string(), en: z.string().optional() })])
+  .union([z.string(), z.object({ fr: z.string(), en: z.string().optional() })], {
+    error: 'texte attendu : "Texte" ou { fr: "…", en: "…" }',
+  })
   .transform((v): Localized => (typeof v === 'string' ? { fr: v } : v));
 const Photo = z.string().regex(/^photos\/[^/]+\.(jpe?g|png|webp)$/i, 'doit être de la forme photos/nom.jpg');
 const Couleur = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'couleur au format #rrggbb');

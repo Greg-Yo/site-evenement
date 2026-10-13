@@ -49,6 +49,20 @@ describe('parseEvent', () => {
     expect(ev.histoire.chapitres).toHaveLength(0);
   });
 
+  test('signale un nombre non guillemeté en français', () => {
+    const chapitres = '\n  chapitres:\n    - { annee: 1987, titre: "Début", texte: "x" }';
+    const p = problemsOf(base.replace('intro: "Il était une fois"', 'intro: "Il était une fois"' + chapitres));
+    const msg = p.find((x) => x.startsWith('histoire.chapitres[0].annee :'));
+    expect(msg).toBeDefined();
+    expect(msg).not.toContain('Invalid input');
+    expect(msg).toContain('chaîne');
+  });
+
+  test('signale un texte localisé sans version française', () => {
+    const p = problemsOf(base.replace('intro: "Il était une fois"', 'intro: { en: "x" }'));
+    expect(p.find((x) => x.startsWith('histoire.intro :'))).toContain('texte attendu');
+  });
+
   test('signale un lieu de moment inconnu avec son chemin', () => {
     const p = problemsOf(base.replace('lieu: domaine }', 'lieu: salle }'));
     expect(p).toContain('moments[0].lieu : le lieu « salle » n’existe pas dans « lieux »');

@@ -6,6 +6,7 @@ Tout le site est rempli à partir de **`evenement.yaml`** et des photos du dossi
 - Un texte peut s'écrire `"Texte"` (identique en FR et EN) ou `{ fr: "Texte", en: "Text" }`. S'il manque la version anglaise, le texte français est affiché.
 - Une photo s'écrit `photos/nom-du-fichier.jpg` (formats acceptés : jpg, png, webp). Le fichier doit exister dans `photos/`.
 - Les identifiants (`id`) s'écrivent en minuscules, chiffres et tirets, sans espaces ni accents.
+- Mettre entre guillemets les années, numéros de téléphone et heures (ex. `annee: "1987"`, `telephone: "06 12 34 56 78"`).
 - En cas d'erreur, le site affiche la liste des problèmes avec le nom exact du champ concerné.
 
 ## Rubriques
