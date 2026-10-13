@@ -1,0 +1,113 @@
+---
+import Base from '../../layouts/Base.astro';
+import PageHead from '../../components/PageHead.astro';
+import { Image } from 'astro:assets';
+import { t } from '../../lib/event';
+import { ui } from '../../lib/i18n';
+import { getEvent } from '../../lib/load-event';
+import { photo } from '../../lib/photos';
+
+const lang = Astro.locals.lang;
+const ev = getEvent();
+const { hebergements, tenue, cadeaux, acces, faq } = ev.infos;
+const contact = ev.site.contact;
+const pastilles = [
+  hebergements.length > 0 && ['dormir', '🛏', ui(lang, 'infos.dormir')],
+  tenue && ['tenue', '👗', ui(lang, 'infos.tenue')],
+  cadeaux && ['cadeaux', '🎁', ui(lang, 'infos.cadeaux')],
+  acces && ['acces', '🚗', ui(lang, 'infos.acces')],
+  faq.length > 0 && ['faq', '❓', ui(lang, 'infos.faq')],
+  ['contact', '📞', ui(lang, 'infos.contact')],
+].filter(Boolean) as [string, string, string][];
+---
+<Base lang={lang} current="infos" title={ui(lang, 'infos.titre')}>
+  <PageHead title={ui(lang, 'infos.titre')} subtitle={ui(lang, 'infos.sous_titre')} />
+
+  <div class="container infos">
+    <nav class="pastilles" aria-label={ui(lang, 'infos.titre')}>
+      {pastilles.map(([id, icone, label]) => <a href={`#${id}`}><span aria-hidden="true">{icone}</span> {label}</a>)}
+    </nav>
+
+    {hebergements.length > 0 && (
+      <section id="dormir">
+        <h2 class="titre-section">{ui(lang, 'infos.dormir')}</h2>
+        <ul class="hotels">
+          {hebergements.map((h) => (
+            <li class="hotel">
+              {h.photo && <Image src={photo(h.photo)} alt="" width={420} height={240} class="hotel-img" />}
+              <div class="hotel-txt">
+                {h.etiquette && <span class="tag">{t(h.etiquette, lang)}</span>}
+                <h3>{h.nom}</h3>
+                <p class="meta">{[h.distance, h.prix].filter(Boolean).join(' · ')}</p>
+                {h.lien && <a class="btn btn-plein btn-petit" href={h.lien} target="_blank" rel="noopener">{ui(lang, 'infos.reserver')}<span class="sr-only"> : {h.nom}</span></a>}
+              </div>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )}
+
+    <div class="boites">
+      {tenue && (
+        <section id="tenue" class="boite">
+          <h2 class="hand">👗 {ui(lang, 'infos.tenue')}</h2>
+          <p>{t(tenue.texte, lang)}</p>
+          {tenue.couleurs.length > 0 && <div class="nuancier" aria-hidden="true">{tenue.couleurs.map((c) => <i style={`background:${c}`}></i>)}</div>}
+        </section>
+      )}
+      {cadeaux && (
+        <section id="cadeaux" class="boite">
+          <h2 class="hand">🎁 {ui(lang, 'infos.cadeaux')}</h2>
+          <p>{t(cadeaux.texte, lang)}</p>
+          {cadeaux.lien_cagnotte && <a class="btn btn-plein btn-petit" href={cadeaux.lien_cagnotte} target="_blank" rel="noopener">{ui(lang, 'infos.cagnotte')}</a>}
+        </section>
+      )}
+      {acces && (
+        <section id="acces" class="boite">
+          <h2 class="hand">🚗 {ui(lang, 'infos.acces')}</h2>
+          <p>{t(acces.texte, lang)}</p>
+        </section>
+      )}
+      <section id="contact" class="boite">
+        <h2 class="hand">📞 {ui(lang, 'infos.contact')}</h2>
+        <p>{contact.nom}{contact.telephone && <><br /><b>{contact.telephone}</b></>}<br />{contact.email}</p>
+        <a class="btn btn-contour btn-petit" href={`mailto:${contact.email}`}>{ui(lang, 'infos.ecrire')}</a>
+      </section>
+    </div>
+
+    {faq.length > 0 && (
+      <section id="faq" class="faq">
+        <h2 class="titre-section">{ui(lang, 'infos.faq')}</h2>
+        {faq.map((f, i) => (
+          <details open={i === 0}>
+            <summary>{t(f.question, lang)}</summary>
+            <p>{t(f.reponse, lang)}</p>
+          </details>
+        ))}
+      </section>
+    )}
+  </div>
+</Base>
+
+<style>
+  .infos { padding-block: 16px 48px; }
+  section { scroll-margin-top: 16px; }
+  .pastilles { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 28px; }
+  .pastilles a { background: #fff; border: 2px solid var(--c-douce); border-radius: 30px; padding: 8px 16px; color: var(--c-texte); text-decoration: none; }
+  .hotels { list-style: none; padding: 0; margin: 0 0 36px; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; }
+  .hotel { background: #fff; border-radius: 18px; overflow: hidden; box-shadow: 0 6px 16px rgba(58,36,25,.1); }
+  .hotel-img { width: 100%; height: 140px; object-fit: cover; }
+  .hotel-txt { padding: 14px 16px 18px; }
+  .hotel h3 { margin: 6px 0 2px; font-size: 1.1rem; }
+  .tag { display: inline-block; background: var(--c-douce); border-radius: 8px; padding: 2px 8px; font-size: .85rem; font-weight: 800; }
+  .meta { color: var(--c-texte-doux); margin: 0 0 10px; font-size: .95rem; }
+  .boites { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; margin-bottom: 36px; }
+  .boite { background: #fff; border-radius: 18px; padding: 20px 22px; box-shadow: 0 6px 16px rgba(58,36,25,.1); }
+  .boite h2 { font-size: 2.1rem; color: var(--c-principale); margin: 0 0 6px; }
+  .boite p { color: var(--c-texte-doux); margin: 0 0 12px; }
+  .nuancier { display: flex; gap: 8px; }
+  .nuancier i { width: 34px; height: 34px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 0 1px #ddd; }
+  details { background: #fff; border-radius: 14px; padding: 14px 18px; margin-bottom: 10px; box-shadow: 0 3px 10px rgba(58,36,25,.08); }
+  summary { font-weight: 800; cursor: pointer; }
+  details p { margin: 10px 0 0; color: var(--c-texte-doux); }
+</style>

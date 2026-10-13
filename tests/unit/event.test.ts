@@ -100,6 +100,17 @@ describe('parseEvent', () => {
   test('signale un YAML mal formé', () => {
     expect(problemsOf('site: [')[0]).toMatch(/^YAML invalide/);
   });
+
+  test('infos absentes : listes vides et rubriques indéfinies', () => {
+    const ev = parseEvent(base, PHOTOS);
+    expect(ev.infos).toEqual({ hebergements: [], faq: [] });
+  });
+
+  test('infos partielles : seule la tenue', () => {
+    const ev = parseEvent(base + '\ninfos:\n  tenue: { texte: "Chic" }\n', PHOTOS);
+    expect(ev.infos.tenue).toEqual({ texte: { fr: 'Chic' }, couleurs: [] });
+    expect(ev.infos.cadeaux).toBeUndefined();
+  });
 });
 
 describe('t', () => {

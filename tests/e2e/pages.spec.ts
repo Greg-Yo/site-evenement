@@ -80,3 +80,19 @@ test.describe('Programme & lieux', () => {
     await expect(page.getByRole('heading', { level: 2, name: /7 pm · Dinner/ })).toBeVisible();
   });
 });
+
+test.describe('Infos pratiques', () => {
+  test('rubriques, ancres et FAQ dépliable', async ({ page }) => {
+    await page.goto('/fr/infos');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Infos pratiques');
+    for (const h of ['Où dormir', 'Tenue', 'Cadeaux', 'Accès & parking', 'Contact', 'Questions fréquentes']) {
+      await expect(page.getByRole('heading', { name: h })).toBeVisible();
+    }
+    await expect(page.getByRole('link', { name: 'Réserver' })).toHaveCount(3);
+    await page.getByRole('link', { name: /Où dormir/ }).first().click();
+    await expect(page).toHaveURL(/#dormir$/);
+    const q = page.getByText('Puis-je venir accompagné(e) ?');
+    await q.click();
+    await expect(page.getByText('Indique simplement tes accompagnants')).toBeVisible();
+  });
+});
