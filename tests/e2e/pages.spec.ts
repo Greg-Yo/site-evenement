@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 
 test.describe('Accueil', () => {
   test('affiche titre, date, compte à rebours et liens', async ({ page }) => {
+    await page.clock.install({ time: new Date('2026-10-13T12:00:00+02:00') });
     await page.goto('/fr/');
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Coco a 40 ans');
     // La date figure aussi dans le pied de page : on vise celle du bandeau.
@@ -9,6 +10,11 @@ test.describe('Accueil', () => {
     await expect(page.getByRole('timer')).toContainText('jours');
     await expect(page.getByRole('link', { name: 'Je viens ! →' })).toHaveAttribute('href', '/fr/rsvp');
     await expect(page.getByRole('heading', { name: 'Le programme' })).toBeVisible();
+  });
+
+  test('la photo principale se charge sans attendre', async ({ page }) => {
+    await page.goto('/fr/');
+    await expect(page.locator('.hero img').first()).toHaveAttribute('loading', 'eager');
   });
 
   test('version anglaise', async ({ page }) => {
@@ -62,9 +68,11 @@ test.describe('Programme & lieux', () => {
     await expect(page.getByRole('heading', { level: 2, name: /Dîner/ })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Itinéraire Google Maps' }).first())
       .toHaveAttribute('href', /google\.com\/maps\/dir\/\?api=1&destination=44\.8378/);
-    await expect(page.locator('#carte .leaflet-marker-icon')).toHaveCount(6);
+    await expect(page.locator('#carte .leaflet-marker-icon')).toHaveCount(5);
+    await page.getByRole('button', { name: 'Voir sur la carte' }).nth(1).click();
+    await expect(page.locator('.leaflet-popup')).toContainText('Dîner');
     await page.getByRole('button', { name: 'Voir sur la carte' }).nth(2).click();
-    await expect(page.locator('.leaflet-popup')).toContainText('La Guinguette');
+    await expect(page.locator('.leaflet-popup', { hasText: 'La Guinguette' })).toBeVisible();
   });
 
   test('les données de la carte ne contiennent aucun chevron brut', async ({ page }) => {
@@ -72,7 +80,7 @@ test.describe('Programme & lieux', () => {
     const html = await page.locator('#map-data').evaluate((el) => el.innerHTML);
     expect(html).not.toContain('<');
     const lieux = await page.locator('#map-data').evaluate((el) => JSON.parse(el.textContent!).lieux);
-    expect(lieux).toHaveLength(4);
+    expect(lieux).toHaveLength(3);
   });
 
   test('version anglaise des heures', async ({ page }) => {

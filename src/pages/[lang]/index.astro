@@ -26,7 +26,7 @@ const rotations = [-6, 4, -2, 7, -4];
         <a class="btn btn-clair" href={`/${lang}/rsvp`}>{ui(lang, 'accueil.cta')}</a>
       </div>
       <div class="hero-photos">
-        <Polaroid src={photo(ev.accueil.photo_principale)} alt="" caption={t(ev.accueil.legende_photo, lang) || undefined} rotate={3} width={520} class="photo1" />
+        <Polaroid src={photo(ev.accueil.photo_principale)} alt="" caption={t(ev.accueil.legende_photo, lang) || undefined} rotate={3} width={520} class="photo1" eager />
         {ev.accueil.photo_secondaire && (
           <Polaroid src={photo(ev.accueil.photo_secondaire)} alt="" tape={false} rotate={-8} width={180} ratio="1/1" class="photo2" />
         )}
@@ -36,7 +36,7 @@ const rotations = [-6, 4, -2, 7, -4];
   <Wave />
   <Countdown target={ev.evenement.date_debut} lang={lang} />
 
-  <section class="container histoire">
+  <section class={`container histoire${ev.histoire.chapitres.at(-1)?.photo ? '' : ' sans-photo'}`}>
     {ev.histoire.chapitres.at(-1)?.photo && (
       <Polaroid src={photo(ev.histoire.chapitres.at(-1)!.photo!)} alt="" rotate={-3} width={360} ratio="4/5" />
     )}
@@ -93,6 +93,7 @@ const rotations = [-6, 4, -2, 7, -4];
   .hero-photos { position: relative; padding: 12px; }
   .hero-photos :global(.photo2) { position: absolute; width: 38%; left: -6%; bottom: -8%; }
   .histoire { display: grid; grid-template-columns: .8fr 1.2fr; gap: 48px; align-items: center; padding-block: 32px 48px; }
+  .histoire.sans-photo { grid-template-columns: 1fr; }
   .programme { background: var(--c-douce); padding: 40px 0 48px; }
   .centre { text-align: center; }
   .cartes { list-style: none; padding: 0; margin: 0 0 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; }

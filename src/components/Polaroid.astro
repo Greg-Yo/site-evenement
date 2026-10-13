@@ -1,11 +1,11 @@
 ---
 import { Image } from 'astro:assets';
 import type { ImageMetadata } from 'astro';
-interface Props { src: ImageMetadata; alt: string; caption?: string; rotate?: number; tape?: boolean; width: number; ratio?: string; class?: string }
-const { src, alt, caption, rotate = 0, tape = true, width, ratio = '4/3', class: cls = '' } = Astro.props;
+interface Props { src: ImageMetadata; alt: string; caption?: string; rotate?: number; tape?: boolean; width: number; ratio?: string; class?: string; eager?: boolean }
+const { src, alt, caption, rotate = 0, tape = true, width, ratio = '4/3', class: cls = '', eager = false } = Astro.props;
 ---
 <figure class={`pola ${cls}`} style={`transform:rotate(${rotate}deg);--ratio:${ratio}`}>
   {tape && <span class="tape" aria-hidden="true"></span>}
-  <Image src={src} alt={alt} width={width} widths={[width, width * 2]} sizes={`${width}px`} loading="lazy" />
+  <Image src={src} alt={alt} width={width} widths={[width, width * 2]} sizes={`${width}px`} loading={eager ? 'eager' : 'lazy'} fetchpriority={eager ? 'high' : undefined} />
   {caption && <figcaption>{caption}</figcaption>}
 </figure>
