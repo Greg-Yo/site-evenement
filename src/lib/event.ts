@@ -137,7 +137,7 @@ export function parseEvent(yamlText: string, photoKeys: string[]): EventConfig {
   for (const [field, p] of photoFields(ev)) {
     if (!keys.has(p.toLowerCase())) problems.push(`${field} : fichier introuvable evenement/${p}`);
   }
-  if (new Date(ev.evenement.date_limite_rsvp + 'T23:59:59') >= new Date(ev.evenement.date_debut)) {
+  if (ev.evenement.date_limite_rsvp >= ev.evenement.date_debut.slice(0, 10)) {
     problems.push('evenement.date_limite_rsvp : doit précéder evenement.date_debut');
   }
   if (problems.length) throw new EventConfigError(problems);

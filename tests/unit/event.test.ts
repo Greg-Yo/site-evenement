@@ -71,6 +71,26 @@ describe('parseEvent', () => {
     expect(p.some((x) => x.startsWith('rsvp :'))).toBe(true);
   });
 
+  test('accepte une date limite la veille d’un début juste après minuit', () => {
+    const yaml = base
+      .replace('2027-06-14T16:00:00+02:00', '2027-06-14T00:30:00+02:00')
+      .replace('2027-05-01', '2027-06-13');
+    expect(() => parseEvent(yaml, PHOTOS)).not.toThrow();
+  });
+
+  test('refuse une date limite le jour même', () => {
+    const p = problemsOf(base.replace('2027-05-01', '2027-06-14'));
+    expect(p).toContain('evenement.date_limite_rsvp : doit précéder evenement.date_debut');
+  });
+
+  test('signale un identifiant de lieu en double', () => {
+    const yaml = base.replace(
+      'lieux:\n',
+      'lieux:\n  - { id: domaine, nom: "Autre", adresse: "1 rue", lat: 44.0, lng: -0.5 }\n',
+    );
+    expect(problemsOf(yaml)).toContain('lieux[1].id : identifiant « domaine » utilisé plusieurs fois');
+  });
+
   test('signale un YAML mal formé', () => {
     expect(problemsOf('site: [')[0]).toMatch(/^YAML invalide/);
   });
