@@ -37,6 +37,13 @@ test('formatDate', () => {
   expect(formatDate('2027-06-14T16:00:00+02:00', 'en')).toBe('Monday, June 14, 2027');
 });
 
+test('formatDate garde le jour local quel que soit le fuseau du serveur', () => {
+  expect(formatDate('2027-06-14T01:00:00+02:00', 'fr')).toBe('lundi 14 juin 2027');
+  expect(formatDate('2027-06-14T23:30:00-05:00', 'en')).toBe('Monday, June 14, 2027');
+  expect(formatDate('2027-06-14T01:00:00+0200', 'fr')).toBe('lundi 14 juin 2027');
+  expect(formatDate('2027-06-14T10:00:00Z', 'fr')).toBe('lundi 14 juin 2027');
+});
+
 test('formatHeure', () => {
   expect(formatHeure('19:00', 'fr')).toBe('19 h');
   expect(formatHeure('19:30', 'fr')).toBe('19 h 30');
