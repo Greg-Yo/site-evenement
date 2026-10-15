@@ -16,6 +16,9 @@
 
 **Écarts assumés avec la spécification** (décisions du responsable, à ne pas « corriger ») :
 - **Pas de point d'entrée `POST /api/rsvp` séparé :** la page `/{lang}/rsvp` traite son propre `POST`, et la page `/{lang}/rsvp/modifier` aussi. Le comportement demandé (fonctionne sans JavaScript, mêmes validations) est inchangé, avec moins de code.
+- **Pas de photo dans l'e-mail :** une image dans un e-mail exige une adresse publique accessible (impossible en local avec `localhost`). La photo figure sur l'invitation PDF jointe ; l'e-mail garde le bandeau aux couleurs du site.
+- **Rechargement après envoi :** recharger la page de remerciement renvoie le formulaire ; l'invité voit « déjà répondu » et reçoit à nouveau son lien (borné par la limite d'envois). Accepté pour ne pas mettre de données personnelles dans une adresse de redirection.
+- **Test d'intégration (§12) :** couvert par les tests unitaires du service (base en mémoire, boîte d'envoi factice) et par les tests de bout en bout (boîte d'envoi réelle).
 - **Consultation de la boîte d'envoi de test :** l'onglet prévu dans l'admin arrive avec l'admin (plan 3). En attendant, on ouvre directement les fichiers `.data/outbox/*/message.html`.
 
 ## Contraintes globales
@@ -28,7 +31,8 @@
   - `MAIL_API_KEY` ;
   - `MAIL_FROM` : adresse e-mail de l'expéditeur ;
   - `OUTBOX_DIR` : défaut `.data/outbox` ;
-  - `RSVP_LIMITE` : défaut `5`.
+  - `RSVP_LIMITE` : défaut `5` ;
+  - `MAINTENANT_TEST` : réservé aux tests, fige l'horloge des réponses.
 - **Anti-spam :** 5 envois au plus par adresse IP toutes les 10 minutes (clé `rsvp:<ip>`), compteur stocké dans la table `limites`, entrées de plus de 24 h purgées.
 - **Validation :**
   - nom de 2 à 100 caractères ;
@@ -46,14 +50,14 @@
   - une imbrication HTML invalide (bloc dans `<p>`) casse la compilation ;
   - une règle `display:` écrase l'attribut `hidden` : ajouter `[hidden] { display: none }` quand on s'en sert.
 - **Contraste :** le texte crème sur fond orange est en gras et fait au moins 1.2rem ; le petit texte orange utilise `var(--c-principale-fonce)`.
-- **Tests de bout en bout :** serveur dédié sur le port **4322**, avec une base et une boîte d'envoi de test (`.data/test.db`, `.data/test-outbox`) vidées avant chaque exécution.
+- **Tests de bout en bout :** serveur dédié sur le port **4322**, avec une base et une boîte d'envoi de test (`.data/test.db`, `.data/test-outbox`) vidées avant chaque exécution, et une horloge figée (`MAINTENANT_TEST`).
 - **Commits :** en français, à l'impératif, sans ligne de co-auteur.
 
 ## Points de vigilance
 
 1. **Texte hostile** (`<script>`, `&`, guillemets) dans le nom ou le message : affiché tel quel, échappé dans la page et dans l'e-mail, jamais interprété. Testé aux tâches 5 et 8.
 2. **Caractères absents des polices** (emoji, idéogrammes) dans un nom ou un titre de moment : le PDF se génère quand même, sans erreur. Testé à la tâche 6.
-3. **Même adresse écrite autrement** (`  Camille@Exemple.FR `) : traitée comme un doublon, pas de seconde réponse. Testé aux tâches 4 et 7.
+3. **Même adresse écrite autrement** (`  Camille@Exemple.FR `) : traitée comme un doublon, pas de seconde réponse. Testé aux tâches 2, 7 et 8.
 4. **Échec d'envoi d'e-mail** (fournisseur indisponible) : la réponse est enregistrée, la page indique que l'e-mail arrivera plus tard, `email_envoye = 0`. Testé à la tâche 7.
 5. **Rechargement de la page après envoi** (renvoi du même formulaire) : aucune seconde réponse, message « déjà répondu ». Testé aux tâches 7 et 8.
 
@@ -220,7 +224,7 @@ export function mountCountdowns(root: ParentNode = document): void {
 
 `src/lib/event.ts` :
 - dans `site`, ajouter `logo: z.string().optional(),` ;
-- remplacer `z.url()` par `z.httpUrl()` pour `url_publique`, `infos.hebergements[].lien` et `infos.cadeaux.lien_cagnotte`.
+- remplacer `z.url()` par `z.url({ protocol: /^https?$/ })` pour `url_publique`, `infos.hebergements[].lien` et `infos.cadeaux.lien_cagnotte` (n'accepte que http et https ; `z.httpUrl()` est à éviter car il refuse `localhost`, utilisé par le contenu d'exemple).
 
 `src/layouts/Base.astro` : remplacer `const logo = siteTitre.split(' ')[0];` par `const logo = ev.site.logo ?? siteTitre;`.
 
@@ -498,7 +502,8 @@ export async function openDb(url: string, authToken?: string): Promise<Db> {
 let instance: Promise<Db> | undefined;
 
 export function getDb(): Promise<Db> {
-  instance ??= openDb(process.env.DATABASE_URL || 'file:.data/local.db', process.env.DATABASE_TOKEN || undefined);
+  instance ??= openDb(process.env.DATABASE_URL || 'file:.data/local.db', process.env.DATABASE_TOKEN || undefined)
+    .catch((e) => { instance = undefined; throw e; });
   return instance;
 }
 ```
@@ -551,7 +556,7 @@ git commit -m "Ajoute la base des réponses et la limite d'envois"
   - `rsvpOuvert(evenement: EventConfig['evenement'], maintenant: Date): boolean` ;
   - `nombrePersonnes(r: { vient: boolean; accompagnants: string[] }): number` ;
   - `CHAMPS_VIDES: ChampsRsvp`.
-- Noms des champs HTML : `vient` (`oui` / `non`), `nom`, `email`, `telephone`, `accompagnant` (répété), `moment` (répété), `message`, `site_web` (champ piège).
+- Noms des champs HTML : `vient` (`oui` / `non`), `nom`, `email`, `telephone`, `accompagnant` (répété), `moment` (répété), `message`, `ne_pas_remplir` (champ piège).
 
 - [ ] **Étape 1 : ajouter les clés d'erreur dans `DICT` (`src/lib/i18n.ts`)**
 
@@ -587,7 +592,7 @@ describe('lireFormulaire', () => {
     });
   });
   test('présence absente → null ; champ piège lu', () => {
-    const fd = new FormData(); fd.set('site_web', 'http://spam');
+    const fd = new FormData(); fd.set('ne_pas_remplir', 'http://spam');
     expect(lireFormulaire(fd)).toMatchObject({ vient: null, piege: 'http://spam' });
   });
 });
@@ -667,7 +672,7 @@ export function lireFormulaire(fd: FormData): ChampsRsvp {
     accompagnants: liste(fd, 'accompagnant'),
     moments: liste(fd, 'moment'),
     message: texte(fd, 'message'),
-    piege: texte(fd, 'site_web'),
+    piege: texte(fd, 'ne_pas_remplir'),
   };
 }
 
@@ -676,9 +681,10 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export function valider(c: ChampsRsvp, momentIds: string[], langue: Lang):
   { ok: true; data: NouvelleReponse } | { ok: false; erreurs: ErreursRsvp } {
   const erreurs: ErreursRsvp = {};
+  const email = c.email.trim().toLowerCase();
   if (c.vient === null) erreurs.vient = 'rsvp.err.vient';
   if (c.nom.length < 2 || c.nom.length > 100) erreurs.nom = 'rsvp.err.nom';
-  if (c.email.length > 254 || !EMAIL.test(c.email)) erreurs.email = 'rsvp.err.email';
+  if (email.length > 254 || !EMAIL.test(email)) erreurs.email = 'rsvp.err.email';
   if (c.telephone.length > 30) erreurs.telephone = 'rsvp.err.telephone';
   if (c.message.length > 1000) erreurs.message = 'rsvp.err.message';
   if (c.vient) {
@@ -689,7 +695,7 @@ export function valider(c: ChampsRsvp, momentIds: string[], langue: Lang):
   return {
     ok: true,
     data: {
-      langue, vient: c.vient!, nom: c.nom, email: c.email, telephone: c.telephone || null,
+      langue, vient: c.vient!, nom: c.nom, email, telephone: c.telephone || null,
       accompagnants: c.vient ? c.accompagnants : [], moments: c.vient ? [...new Set(c.moments)] : [], message: c.message || null,
     },
   };
@@ -831,24 +837,27 @@ import type { Expediteur, Message } from './types';
 
 const horodatage = (d: Date) => d.toISOString().replace(/[-:]/g, '').replace('T', '-').replace('.', '-').slice(0, 19);
 
+// Compteur partagé par toutes les boîtes d'envoi du processus : getExpediteur() en crée une par envoi.
+let compteur = 0;
+
 export function creerOutbox(dossier: string, maintenant: () => Date = () => new Date()): Expediteur {
-  let compteur = 0;
   return {
     async envoyer(m: Message) {
       const date = maintenant();
       const d = join(dossier, `${horodatage(date)}-${++compteur}`);
       mkdirSync(d, { recursive: true });
       const pj = m.piecesJointes ?? [];
-      writeFileSync(join(d, 'meta.json'), JSON.stringify({ a: m.a, sujet: m.sujet, date: date.toISOString(), piecesJointes: pj.map((p) => p.nom) }, null, 2));
       writeFileSync(join(d, 'message.html'), m.html);
       writeFileSync(join(d, 'message.txt'), m.texte);
       for (const p of pj) writeFileSync(join(d, p.nom.replace(/[\\/]/g, '_')), p.contenu);
+      // meta.json en dernier : sa présence signale un e-mail complet.
+      writeFileSync(join(d, 'meta.json'), JSON.stringify({ a: m.a, sujet: m.sujet, date: date.toISOString(), piecesJointes: pj.map((p) => p.nom) }, null, 2));
     },
   };
 }
 ```
 
-> `horodatage(new Date('2027-01-10T10:11:12.345Z'))` vaut `'20270110-101112-345'`. Le compteur évite les collisions dans la même milliseconde. Après un redémarrage, l'horodatage suffit à les éviter.
+> `horodatage(new Date('2027-01-10T10:11:12.345Z'))` vaut `'20270110-101112-345'`. Le compteur, commun à tout le processus, évite les collisions dans la même milliseconde (le serveur de test reçoit des envois simultanés des deux projets Playwright). Le test de la boîte d'envoi est le seul du fichier à l'utiliser, d'où les suffixes `-1` et `-2`.
 
 `src/lib/mail/api.ts` :
 ```ts
@@ -921,9 +930,11 @@ git commit -m "Ajoute l'envoi d'e-mails en local et par API"
 
 **Fichiers :**
 - Créer : `src/lib/mail/templates.ts`, `tests/unit/templates.test.ts`
+- Modifier : `src/lib/theme.ts` (export `couleursTheme`)
 
 **Interfaces :**
-- Consomme : `EventConfig`, `t`, `findLieu`, `Reponse`, `momentLabel`, `formatDate`. Les couleurs viennent de `ev.theme.couleurs`, avec les valeurs Soleil par défaut définies localement.
+- Consomme : `EventConfig`, `t`, `findLieu`, `Reponse`, `momentLabel`, `formatDate`.
+- Produit aussi : `couleursTheme(theme: EventConfig['theme']): { principale; principaleFonce; fond; texte; texteDoux; douce }` dans `src/lib/theme.ts` (chaînes `#rrggbb`), réutilisée par `themeVars`, puis par le PDF à la tâche 6.
 - Produit :
   - `type Liens = { programme: string; modifier: string }` ;
   - `emailConfirmation(ev: EventConfig, r: Reponse, liens: Liens): { sujet: string; html: string; texte: string }` ;
@@ -992,7 +1003,25 @@ test('lien de modification', () => {
 
 Exécuter : `npx vitest run tests/unit/templates.test.ts`. Attendu : ÉCHEC (module introuvable).
 
-- [ ] **Étape 2 : implémenter `src/lib/mail/templates.ts`**
+- [ ] **Étape 2 : exporter `couleursTheme` dans `src/lib/theme.ts` et l'utiliser dans `themeVars`**
+
+```ts
+export function couleursTheme(theme: Theme) {
+  const c = { ...SOLEIL, ...theme.couleurs };
+  return {
+    principale: c.principale,
+    principaleFonce: darkenUntil(c.principale, c.fond),
+    fond: c.fond,
+    texte: c.texte,
+    texteDoux: darkenUntil(mix(c.texte, c.fond, 0.75), c.fond),
+    douce: c.douce,
+  };
+}
+```
+
+Dans `themeVars`, remplacer le calcul des couleurs par `const c = couleursTheme(theme);` et les valeurs par `c.principale`, `c.principaleFonce`, `c.fond`, `c.texte`, `c.texteDoux`, `c.douce`. Les sorties restent identiques, et `tests/unit/theme.test.ts` doit toujours passer.
+
+- [ ] **Étape 3 : implémenter `src/lib/mail/templates.ts`**
 
 Mise en page en tableaux et styles en ligne, pour les messageries. Tout texte venant de l'invité ou du YAML passe par `echapper`.
 
@@ -1001,6 +1030,7 @@ import type { Reponse } from '../db';
 import { findLieu, t, type EventConfig, type Lang } from '../event';
 import { formatDate } from '../i18n';
 import { momentLabel } from '../moments';
+import { couleursTheme } from '../theme';
 
 export type Liens = { programme: string; modifier: string };
 type Contenu = { sujet: string; html: string; texte: string };
@@ -1034,8 +1064,10 @@ const TXT = {
   },
 } satisfies Record<Lang, unknown>;
 
+// Fond foncé dérivé : le texte blanc des boutons et du bandeau doit atteindre 4,5:1 (le #ec5e27 n'atteint que 3,3:1).
 function couleurs(ev: EventConfig) {
-  return { principale: '#ec5e27', fond: '#fdfdf1', texte: '#3a2419', ...ev.theme.couleurs };
+  const c = couleursTheme(ev.theme);
+  return { principale: c.principaleFonce, fond: c.fond, texte: c.texte };
 }
 
 function bouton(href: string, libelle: string, c: ReturnType<typeof couleurs>, plein: boolean): string {
@@ -1111,11 +1143,11 @@ export function emailLienModification(ev: EventConfig, r: Reponse, liens: Liens)
 ```
 
 
-- [ ] **Étape 3 : vérifier**
+- [ ] **Étape 4 : vérifier**
 
-Exécuter : `npx vitest run tests/unit/templates.test.ts`, puis `npx vitest run`. Attendu : RÉUSSI.
+Exécuter : `npx vitest run tests/unit/templates.test.ts tests/unit/theme.test.ts`, puis `npx vitest run`. Attendu : RÉUSSI.
 
-- [ ] **Étape 4 : commit**
+- [ ] **Étape 5 : commit**
 
 ```bash
 git add -A
@@ -1127,15 +1159,15 @@ git commit -m "Ajoute le contenu des e-mails de confirmation"
 ### Tâche 6 : invitation PDF
 
 **Fichiers :**
-- Créer : `src/assets/fonts/Caveat-Bold.ttf`, `src/assets/fonts/Nunito-Regular.ttf`, `src/assets/fonts/Nunito-ExtraBold.ttf`, `src/assets/fonts/LICENCE-OFL.txt`, `src/lib/pdf/invitation.ts`, `src/lib/pdf/ressources.ts`, `tests/unit/pdf.test.ts`
-- Modifier : `src/lib/theme.ts` (export `couleursTheme`), `src/env.d.ts`, `package.json`
+- Créer : `src/assets/fonts/Caveat-Bold.ttf`, `src/assets/fonts/Nunito-Regular.ttf`, `src/assets/fonts/Nunito-ExtraBold.ttf`, `src/assets/fonts/OFL-Caveat.txt`, `src/assets/fonts/OFL-Nunito.txt`, `src/lib/pdf/invitation.ts`, `src/lib/pdf/ressources.ts`, `tests/unit/pdf.test.ts`, `tests/unit/pdf-ressources.test.ts`
+- Modifier : `src/env.d.ts`, `package.json`
 
 **Interfaces :**
-- Consomme : `EventConfig`, `Reponse`, `t`, `findLieu`, `momentLabel`, `formatDate`.
+- Consomme : `EventConfig`, `Reponse`, `t`, `findLieu`, `momentLabel`, `formatDate`, `couleursTheme` (tâche 5).
 - Produit :
-  - `couleursTheme(theme: EventConfig['theme']): { principale; principaleFonce; fond; texte; texteDoux; douce }` (chaînes `#rrggbb`), réutilisée par `themeVars` ;
   - `type Polices = { titre: Uint8Array; texte: Uint8Array; texteGras: Uint8Array }` ;
   - `genererInvitation(d: { ev: EventConfig; reponse: Pick<Reponse, 'nom' | 'accompagnants' | 'moments' | 'langue'>; photo: Uint8Array | null; polices: Polices; urlQr: string }): Promise<Uint8Array>` ;
+  - pour les tests : `mesurerInvitation(d): Promise<{ disposition: Disposition; yFin: number }>`, `BAS_CONTENU: number`, `dessinable(texte: string, police: PDFFont): string` ;
   - `polices(): Polices` ;
   - `photoJpeg(chemin: string): Promise<Uint8Array | null>` (`ressources.ts`).
 
@@ -1148,7 +1180,8 @@ mkdir -p src/assets/fonts
 curl -sL -o src/assets/fonts/Caveat-Bold.ttf      "https://fonts.gstatic.com/s/caveat/v23/WnznHAc5bAfYB2QRah7pcpNvOx-pjRV6SII.ttf"
 curl -sL -o src/assets/fonts/Nunito-Regular.ttf   "https://fonts.gstatic.com/s/nunito/v32/XRXI3I6Li01BKofiOc5wtlZ2di8HDLshRTM.ttf"
 curl -sL -o src/assets/fonts/Nunito-ExtraBold.ttf "https://fonts.gstatic.com/s/nunito/v32/XRXI3I6Li01BKofiOc5wtlZ2di8HDDsmRTM.ttf"
-curl -sL -o src/assets/fonts/LICENCE-OFL.txt      "https://raw.githubusercontent.com/google/fonts/main/ofl/nunito/OFL.txt"
+curl -sL -o src/assets/fonts/OFL-Nunito.txt       "https://raw.githubusercontent.com/google/fonts/main/ofl/nunito/OFL.txt"
+curl -sL -o src/assets/fonts/OFL-Caveat.txt       "https://raw.githubusercontent.com/google/fonts/main/ofl/caveat/OFL.txt"
 ```
 
 Vérifier : les trois `.ttf` commencent par les octets `00 01 00 00` (`head -c 4 fichier | od -An -tx1`). Si une URL a changé, en obtenir une nouvelle avec `curl -s -A "Mozilla/4.0" "https://fonts.googleapis.com/css2?family=Caveat:wght@700&family=Nunito:wght@400;800"`.
@@ -1170,7 +1203,8 @@ import { PDFDocument } from 'pdf-lib';
 import sharp from 'sharp';
 import { beforeAll, describe, expect, test } from 'vitest';
 import { parseEvent } from '../../src/lib/event';
-import { genererInvitation, type Polices } from '../../src/lib/pdf/invitation';
+import fontkit from '@pdf-lib/fontkit';
+import { BAS_CONTENU, dessinable, genererInvitation, mesurerInvitation, type Polices } from '../../src/lib/pdf/invitation';
 
 const ev = parseEvent(readFileSync('evenement/evenement.yaml', 'utf8'), readdirSync('evenement/photos').map((f) => `photos/${f}`));
 const polices: Polices = {
@@ -1207,35 +1241,34 @@ describe('genererInvitation', () => {
     await expect(genererInvitation({ ev, reponse: r, photo, polices, urlQr: 'http://x' })).resolves.toBeInstanceOf(Uint8Array);
   });
 
-  test('nombreux accompagnants et tous les moments : reste sur une page', async () => {
+  test('cas courant : disposition la plus aérée, avec photo', async () => {
+    const m = await mesurerInvitation({ ev, reponse, photo, polices, urlQr: 'http://x' });
+    expect(m.disposition).toEqual({ photo: true, tailleNoms: 26, interligne: 13 });
+    expect(m.yFin).toBeGreaterThanOrEqual(BAS_CONTENU);
+  });
+
+  test('10 accompagnants et tous les moments : disposition compacte, contenu au-dessus du QR code', async () => {
     const r = { ...reponse, accompagnants: Array.from({ length: 10 }, (_, i) => `Accompagnant numéro ${i + 1}`), moments: ev.moments.map((m) => m.id) };
-    const doc = await PDFDocument.load(await genererInvitation({ ev, reponse: r, photo, polices, urlQr: 'http://x' }));
-    expect(doc.getPageCount()).toBe(1);
+    const m = await mesurerInvitation({ ev, reponse: r, photo, polices, urlQr: 'http://x' });
+    expect(m.disposition.tailleNoms).toBeLessThan(26);
+    expect(m.yFin).toBeGreaterThanOrEqual(BAS_CONTENU);
+    await expect(genererInvitation({ ev, reponse: r, photo, polices, urlQr: 'http://x' })).resolves.toBeInstanceOf(Uint8Array);
+  });
+});
+
+describe('dessinable', () => {
+  test('retire emoji et idéogrammes absents de la police, garde les accents', async () => {
+    const doc = await PDFDocument.create();
+    doc.registerFontkit(fontkit);
+    const f = await doc.embedFont(polices.texte, { subset: true });
+    expect(dessinable('Coco 🎉 李 Zoë', f)).toBe('Coco Zoë');
   });
 });
 ```
 
 Exécuter : `npx vitest run tests/unit/pdf.test.ts`. Attendu : ÉCHEC (module introuvable).
 
-- [ ] **Étape 3 : exporter `couleursTheme` dans `src/lib/theme.ts` et l'utiliser dans `themeVars`**
-
-```ts
-export function couleursTheme(theme: Theme) {
-  const c = { ...SOLEIL, ...theme.couleurs };
-  return {
-    principale: c.principale,
-    principaleFonce: darkenUntil(c.principale, c.fond),
-    fond: c.fond,
-    texte: c.texte,
-    texteDoux: darkenUntil(mix(c.texte, c.fond, 0.75), c.fond),
-    douce: c.douce,
-  };
-}
-```
-
-Dans `themeVars`, remplacer le calcul des couleurs par `const c = couleursTheme(theme);` et les valeurs par `c.principale`, `c.principaleFonce`, `c.fond`, `c.texte`, `c.texteDoux`, `c.douce`. Les sorties restent identiques, et `tests/unit/theme.test.ts` doit toujours passer.
-
-- [ ] **Étape 4 : implémenter `src/lib/pdf/invitation.ts`**
+- [ ] **Étape 3 : implémenter `src/lib/pdf/invitation.ts`**
 
 ```ts
 import fontkit from '@pdf-lib/fontkit';
@@ -1259,7 +1292,7 @@ const MARGE = 24;
 const couleur = (hex: string) => rgb(...([1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255) as [number, number, number]));
 
 /** Retire les caractères que la police ne sait pas dessiner (emoji, idéogrammes…). */
-function dessinable(texte: string, police: PDFFont): string {
+export function dessinable(texte: string, police: PDFFont): string {
   const jeu = new Set(police.getCharacterSet());
   return [...texte].filter((ch) => jeu.has(ch.codePointAt(0)!)).join('').replace(/\s{2,}/g, ' ').trim();
 }
@@ -1286,11 +1319,26 @@ const TXT = {
   en: { etiquette: 'PERSONAL INVITATION', hate1: "We can't wait to see you!", hateN: "We can't wait to see you all!", qr: ['Schedule, map', 'and practical info'] },
 };
 
-export async function genererInvitation(d: Donnees): Promise<Uint8Array> {
+export type Disposition = { photo: boolean; tailleNoms: number; interligne: number };
+/** Du plus aéré au plus compact : la première disposition qui tient au-dessus du QR code est retenue. */
+const DISPOSITIONS: Disposition[] = [
+  { photo: true, tailleNoms: 26, interligne: 13 },
+  { photo: true, tailleNoms: 18, interligne: 12 },
+  { photo: false, tailleNoms: 18, interligne: 12 },
+  { photo: false, tailleNoms: 14, interligne: 11 },
+];
+const [W, H] = A5;
+const LARGEUR = W - 2 * MARGE;
+const HAUT_CONTENU = H - 120;
+/** Limite basse du contenu : au-dessus du QR code (64 pt) et de sa légende. */
+export const BAS_CONTENU = MARGE + 80;
+const CADRE = { w: 190, h: 150 };
+
+type Ligne = { texte: string; police: PDFFont; taille: number };
+
+async function preparer(d: Donnees) {
   const { ev, reponse: r } = d;
   const lang = r.langue;
-  const T = TXT[lang];
-  const c = couleursTheme(ev.theme);
   const doc = await PDFDocument.create();
   doc.registerFontkit(fontkit);
   const [fTitre, fTexte, fGras] = await Promise.all([
@@ -1298,9 +1346,41 @@ export async function genererInvitation(d: Donnees): Promise<Uint8Array> {
     doc.embedFont(d.polices.texte, { subset: true }),
     doc.embedFont(d.polices.texteGras, { subset: true }),
   ]);
+  const noms = [r.nom, ...r.accompagnants].map((n) => dessinable(n, fTitre)).filter(Boolean);
+  const texteNoms = noms.length > 1 ? `${noms.slice(0, -1).join(', ')} & ${noms.at(-1)}` : noms[0] ?? '';
+  const lignesMoments: Ligne[] = ev.moments.filter((m) => r.moments.includes(m.id)).flatMap((m) => {
+    const l = findLieu(ev, m.lieu);
+    return [
+      { texte: dessinable(`${momentLabel(m, lang)} : ${l.nom}`, fGras), police: fGras, taille: 9.5 },
+      { texte: dessinable(l.adresse, fTexte), police: fTexte, taille: 8.5 },
+    ];
+  });
+  let disp = DISPOSITIONS[0];
+  let lignesNoms: string[] = [];
+  let yFin = 0;
+  for (disp of DISPOSITIONS) {
+    lignesNoms = couper(texteNoms, fTitre, disp.tailleNoms, LARGEUR);
+    const hauteur = (disp.photo && d.photo ? CADRE.h : 0) + 16 + lignesNoms.length * disp.tailleNoms + 36
+      + (lignesMoments.length ? 12 + lignesMoments.length * disp.interligne + 14 : 0);
+    yFin = HAUT_CONTENU - hauteur;
+    if (yFin >= BAS_CONTENU) break;
+  }
+  return { doc, fTitre, fTexte, fGras, lignesNoms, lignesMoments, disp, yFin };
+}
+
+/** Disposition retenue et position la plus basse du contenu (utile aux tests). */
+export async function mesurerInvitation(d: Donnees): Promise<{ disposition: Disposition; yFin: number }> {
+  const p = await preparer(d);
+  return { disposition: p.disp, yFin: p.yFin };
+}
+
+export async function genererInvitation(d: Donnees): Promise<Uint8Array> {
+  const { ev, reponse: r } = d;
+  const lang = r.langue;
+  const T = TXT[lang];
+  const c = couleursTheme(ev.theme);
+  const { doc, fTitre, fTexte, fGras, lignesNoms, lignesMoments, disp } = await preparer(d);
   const page = doc.addPage(A5);
-  const [W, H] = A5;
-  const largeur = W - 2 * MARGE;
 
   page.drawRectangle({ x: 0, y: 0, width: W, height: H, color: couleur(c.fond) });
 
@@ -1309,30 +1389,26 @@ export async function genererInvitation(d: Donnees): Promise<Uint8Array> {
   centrer(page, T.etiquette, fGras, 10, H - 34, couleur(c.fond));
   const titre = dessinable(t(ev.site.titre, lang), fTitre);
   let tailleTitre = 40;
-  while (fTitre.widthOfTextAtSize(titre, tailleTitre) > largeur && tailleTitre > 18) tailleTitre -= 2;
+  while (fTitre.widthOfTextAtSize(titre, tailleTitre) > LARGEUR && tailleTitre > 18) tailleTitre -= 2;
   centrer(page, titre, fTitre, tailleTitre, H - 80, couleur(c.fond));
 
   // Photo façon polaroïd
-  let y = H - 120;
-  if (d.photo) {
+  let y = HAUT_CONTENU;
+  if (disp.photo && d.photo) {
     const img = await doc.embedJpg(d.photo);
-    const cadre = { w: 190, h: 150 };
-    const dim = img.scaleToFit(cadre.w - 14, cadre.h - 34);
-    const x0 = (W - cadre.w) / 2;
-    y -= cadre.h;
-    page.drawRectangle({ x: x0 + 3, y: y - 3, width: cadre.w, height: cadre.h, color: rgb(0.85, 0.8, 0.75) });
-    page.drawRectangle({ x: x0, y, width: cadre.w, height: cadre.h, color: rgb(1, 1, 1) });
-    page.drawImage(img, { x: x0 + (cadre.w - dim.width) / 2, y: y + 27 + (cadre.h - 34 - dim.height) / 2, width: dim.width, height: dim.height });
+    const dim = img.scaleToFit(CADRE.w - 14, CADRE.h - 34);
+    const x0 = (W - CADRE.w) / 2;
+    y -= CADRE.h;
+    page.drawRectangle({ x: x0 + 3, y: y - 3, width: CADRE.w, height: CADRE.h, color: rgb(0.85, 0.8, 0.75) });
+    page.drawRectangle({ x: x0, y, width: CADRE.w, height: CADRE.h, color: rgb(1, 1, 1) });
+    page.drawImage(img, { x: x0 + (CADRE.w - dim.width) / 2, y: y + 27 + (CADRE.h - 34 - dim.height) / 2, width: dim.width, height: dim.height });
   }
 
   // Noms
-  const noms = [r.nom, ...r.accompagnants].map((n) => dessinable(n, fTitre)).filter(Boolean);
-  const texteNoms = noms.length > 1 ? `${noms.slice(0, -1).join(', ')} & ${noms.at(-1)}` : noms[0] ?? '';
-  const tailleNoms = noms.length > 4 ? 18 : 26;
   y -= 16;
-  for (const ligne of couper(texteNoms, fTitre, tailleNoms, largeur)) {
-    y -= tailleNoms;
-    centrer(page, ligne, fTitre, tailleNoms, y, couleur(c.principaleFonce));
+  for (const ligne of lignesNoms) {
+    y -= disp.tailleNoms;
+    centrer(page, ligne, fTitre, disp.tailleNoms, y, couleur(c.principaleFonce));
   }
   y -= 18;
   centrer(page, r.accompagnants.length ? T.hateN : T.hate1, fTexte, 11, y, couleur(c.texte));
@@ -1340,22 +1416,14 @@ export async function genererInvitation(d: Donnees): Promise<Uint8Array> {
   centrer(page, dessinable(formatDate(ev.evenement.date_debut, lang), fGras), fGras, 12, y, couleur(c.texte));
 
   // Moments choisis
-  const moments = ev.moments.filter((m) => r.moments.includes(m.id));
-  if (moments.length) {
-    const lignes = moments.flatMap((m) => {
-      const l = findLieu(ev, m.lieu);
-      return [
-        { texte: dessinable(`${momentLabel(m, lang)} : ${l.nom}`, fGras), police: fGras, taille: 9.5 },
-        { texte: dessinable(l.adresse, fTexte), police: fTexte, taille: 8.5 },
-      ];
-    });
-    const hauteur = lignes.length * 13 + 14;
+  if (lignesMoments.length) {
+    const hauteur = lignesMoments.length * disp.interligne + 14;
     y -= 12 + hauteur;
-    page.drawRectangle({ x: MARGE, y, width: largeur - 80, height: hauteur, color: rgb(1, 1, 1) });
+    page.drawRectangle({ x: MARGE, y, width: LARGEUR - 80, height: hauteur, color: rgb(1, 1, 1) });
     let ly = y + hauteur - 18;
-    for (const l of lignes) {
-      page.drawText(l.texte, { x: MARGE + 10, y: ly, size: l.taille, font: l.police, color: couleur(l.police === fGras ? c.texte : c.texteDoux), maxWidth: largeur - 100 });
-      ly -= 13;
+    for (const l of lignesMoments) {
+      page.drawText(l.texte, { x: MARGE + 10, y: ly, size: l.taille, font: l.police, color: couleur(l.police === fGras ? c.texte : c.texteDoux), maxWidth: LARGEUR - 100 });
+      ly -= disp.interligne;
     }
   }
 
@@ -1374,9 +1442,9 @@ export async function genererInvitation(d: Donnees): Promise<Uint8Array> {
 }
 ```
 
-> Si le contenu dépasse la page (accompagnants très nombreux), réduire `tailleNoms` à 14 et l'interligne des moments à 11 : le test « reste sur une page » vérifie seulement le nombre de pages, mais un texte dessiné sous `y = MARGE + 70` chevaucherait le QR code. Contrôler visuellement le PDF produit par ce test (l'écrire temporairement sur disque) et l'indiquer dans le rapport.
+> `preparer` et le dessin calculent la hauteur de la même façon : la position finale du contenu dessiné est égale à `yFin`. Toute modification de l'un doit être répercutée dans l'autre ; le test « reste au-dessus du QR code » le vérifie.
 
-- [ ] **Étape 5 : implémenter `src/lib/pdf/ressources.ts`**
+- [ ] **Étape 4 : implémenter `src/lib/pdf/ressources.ts`**
 
 ```ts
 import sharp from 'sharp';
@@ -1402,11 +1470,34 @@ export async function photoJpeg(chemin: string): Promise<Uint8Array | null> {
 }
 ```
 
-> Les polices et les photos sont intégrées au code serveur par `?inline` (base64), si bien qu'aucune lecture de disque n'a lieu à l'exécution, ce qui est compatible avec Vercel. Vérifier avec `npm run build` que Vite accepte `?inline` sur `.ttf` et `.jpg`. Sinon, le signaler (NEEDS_CONTEXT) au lieu de passer par `fs`.
+> Les polices et les photos sont intégrées au code serveur par `?inline` (base64), si bien qu'aucune lecture de disque n'a lieu à l'exécution, ce qui est compatible avec Vercel. Le test de l'étape 5 le vérifie ; la compilation complète le confirmera à la tâche 8, quand `services.ts` importera ce module. En cas d'échec, le signaler (NEEDS_CONTEXT) au lieu de passer par `fs`.
+
+- [ ] **Étape 5 : tester le chargement des ressources** (`?inline` est géré par Vite, dans Vitest comme dans Astro)
+
+`tests/unit/pdf-ressources.test.ts` :
+```ts
+import { PDFDocument } from 'pdf-lib';
+import { expect, test } from 'vitest';
+import { photoJpeg, polices } from '../../src/lib/pdf/ressources';
+
+test('polices : trois TTF valides', () => {
+  const p = polices();
+  for (const f of [p.titre, p.texte, p.texteGras]) expect([...f.slice(0, 4)]).toEqual([0, 1, 0, 0]);
+});
+
+test('photoJpeg : JPEG de 1 200 px au plus, intégrable par pdf-lib ; null si absente', async () => {
+  const jpg = await photoJpeg('photos/hero.jpg');
+  expect(jpg).not.toBeNull();
+  expect([...jpg!.slice(0, 3)]).toEqual([0xff, 0xd8, 0xff]);
+  const doc = await PDFDocument.create();
+  expect((await doc.embedJpg(jpg!)).width).toBeLessThanOrEqual(1200);
+  expect(await photoJpeg('photos/absente.jpg')).toBeNull();
+});
+```
 
 - [ ] **Étape 6 : vérifier**
 
-Exécuter : `npx vitest run tests/unit/pdf.test.ts tests/unit/theme.test.ts`, puis `npx vitest run`, puis `npm run build`. Attendu : RÉUSSI.
+Exécuter : `npx vitest run tests/unit/pdf.test.ts tests/unit/pdf-ressources.test.ts`, puis `npx vitest run`, puis `npm run build`. Attendu : RÉUSSI.
 
 - [ ] **Étape 7 : commit**
 
@@ -1486,7 +1577,7 @@ describe('soumettre', () => {
 
   test('doublon (casse et espaces différents) : rien n’est modifié, le lien est renvoyé', async () => {
     await soumettre(champs, 'fr', '1.1.1.1', deps);
-    const r = await soumettre({ ...champs, email: 'camille@exemple.fr', nom: 'Autre Nom', vient: false, moments: [] }, 'fr', '1.1.1.1', deps);
+    const r = await soumettre({ ...champs, email: '  Camille@Exemple.FR ', nom: 'Autre Nom', vient: false, moments: [] }, 'fr', '1.1.1.1', deps);
     expect(r).toEqual({ type: 'doublon' });
     expect((await db.parEmail('CAMILLE@EXEMPLE.FR'))?.nom).toBe('Camille Martin');
     expect(envoyes).toHaveLength(2);
@@ -1577,7 +1668,7 @@ export function liens(r: Reponse, urlBase: string): Liens {
 }
 
 export function nomFichierInvitation(nom: string): string {
-  const propre = nom.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  const propre = nom.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '');
   return `Invitation-${propre || 'invite'}.pdf`;
 }
 
@@ -1657,43 +1748,48 @@ git commit -m "Ajoute le traitement complet d'une réponse"
 ### Tâche 8 : page RSVP & Livre d'or
 
 **Fichiers :**
-- Créer : `src/lib/services.ts`, `src/components/RsvpForm.astro`, `src/components/LivreDor.astro`, `src/scripts/rsvp-form.ts`, `src/pages/[lang]/rsvp.astro`, `tests/e2e/outbox.ts`, `tests/e2e/rsvp.spec.ts`
+- Créer : `src/lib/services.ts`, `src/components/RsvpForm.astro`, `src/components/LivreDor.astro`, `src/scripts/rsvp-form.ts`, `src/pages/[lang]/rsvp.astro`, `scripts/reset-test-data.mjs`, `tests/e2e/outbox.ts`, `tests/e2e/rsvp.spec.ts`
 - Modifier : `src/lib/i18n.ts` (clés `rsvp.*`, `livre.*`), `playwright.config.ts`, `src/pages/[lang]/index.astro` (extrait du livre d'or)
 
 **Interfaces :**
 - Consomme : `soumettre`, `Resultat`, `Deps`, `lireFormulaire`, `CHAMPS_VIDES`, `rsvpOuvert`, `nombrePersonnes`, `getDb`, `getExpediteur`, `genererInvitation`, `polices`, `photoJpeg`, `getEvent`.
 - Produit :
   - `getDeps(): Promise<Deps>` (`services.ts`) ;
-  - `<RsvpForm lang champs erreurs action libelleEnvoyer emailVerrouille?>` ;
+  - `<RsvpForm lang ev champs erreurs? libelleEnvoyer emailVerrouille?>` ;
   - `<LivreDor lang messages>` ;
   - `messagesEnvoyesA(email: string): { dossier: string; meta: { a: string; sujet: string; piecesJointes: string[] }; html: string }[]` (`tests/e2e/outbox.ts`).
 
 - [ ] **Étape 1 : configuration des tests de bout en bout (serveur dédié)**
 
+`scripts/reset-test-data.mjs` (nouveau) :
+```js
+import { rmSync } from 'node:fs';
+
+// Repart d'une base et d'une boîte d'envoi de test vides, juste avant le démarrage du serveur de test.
+for (const p of ['.data/test.db', '.data/test.db-journal', '.data/test.db-wal', '.data/test.db-shm', '.data/test-outbox']) {
+  rmSync(p, { recursive: true, force: true });
+}
+```
+
 `playwright.config.ts` (remplacer le contenu) :
 ```ts
-import { rmSync } from 'node:fs';
 import { defineConfig, devices } from '@playwright/test';
 
 const PORT = 4322;
-
-// Repart d'une base et d'une boîte d'envoi de test vides. Ce code s'exécute au chargement de la configuration
-// par le processus principal, avant le démarrage du serveur web ; les processus de test (TEST_WORKER_INDEX défini) l'ignorent.
-if (!process.env.TEST_WORKER_INDEX) {
-  for (const p of ['.data/test.db', '.data/test.db-journal', '.data/test.db-wal', '.data/test.db-shm', '.data/test-outbox']) {
-    rmSync(p, { recursive: true, force: true });
-  }
-}
 
 export default defineConfig({
   testDir: 'tests/e2e',
   use: { baseURL: `http://localhost:${PORT}` },
   webServer: {
-    command: `node node_modules/astro/bin/astro.mjs dev --port ${PORT}`,
+    // Le nettoyage fait partie de la commande : il a lieu une seule fois, avant que le serveur n'ouvre la base.
+    command: `node scripts/reset-test-data.mjs && node node_modules/astro/bin/astro.mjs dev --port ${PORT}`,
     url: `http://localhost:${PORT}/fr/infos`,
     reuseExistingServer: false,
     timeout: 120_000,
-    env: { DATABASE_URL: 'file:.data/test.db', OUTBOX_DIR: '.data/test-outbox', MAIL_MODE: 'outbox', RSVP_LIMITE: '1000' },
+    env: {
+      DATABASE_URL: 'file:.data/test.db', OUTBOX_DIR: '.data/test-outbox', MAIL_MODE: 'outbox', RSVP_LIMITE: '1000',
+      MAINTENANT_TEST: '2027-01-15T12:00:00+01:00',
+    },
   },
   projects: [
     { name: 'ordinateur', use: { ...devices['Desktop Chrome'] } },
@@ -1702,7 +1798,7 @@ export default defineConfig({
 });
 ```
 
-> L'adresse de disponibilité (`/fr/infos`) n'ouvre pas la base, contrairement à l'accueil, qui affiche l'extrait du livre d'or. Si l'on vérifie que `.data/test.db` est bien supprimé au lancement et qu'un fichier verrouillé sous Windows empêche la suppression, arrêter tout serveur de test resté actif.
+> `MAINTENANT_TEST` fige l'horloge du serveur de test avant la date limite : les tests de réponse ne dépendent pas de la date réelle. L'adresse de disponibilité (`/fr/infos`) n'ouvre pas la base, contrairement à l'accueil.
 
 `tests/e2e/outbox.ts` :
 ```ts
@@ -1713,7 +1809,7 @@ const DOSSIER = '.data/test-outbox';
 
 export function messagesEnvoyesA(email: string) {
   if (!existsSync(DOSSIER)) return [];
-  return readdirSync(DOSSIER).sort().map((nom) => {
+  return readdirSync(DOSSIER).sort().filter((nom) => existsSync(join(DOSSIER, nom, 'meta.json'))).map((nom) => {
     const dossier = join(DOSSIER, nom);
     return { dossier, meta: JSON.parse(readFileSync(join(dossier, 'meta.json'), 'utf8')), html: readFileSync(join(dossier, 'message.html'), 'utf8') };
   }).filter((m) => m.meta.a === email.toLowerCase());
@@ -1863,11 +1959,12 @@ test('l’accueil affiche un extrait du livre d’or', async ({ page }, info) =>
   await page.getByLabel(/Un petit mot/).fill(mot);
   await page.getByRole('button', { name: 'Envoyer ma réponse' }).click();
   await page.goto('/fr/');
-  await expect(page.locator('.tu-viens blockquote')).toContainText('Julie Bernard');
+  // Un autre test peut avoir laissé un message plus récent : on vérifie qu'un extrait signé s'affiche.
+  await expect(page.locator('.tu-viens blockquote footer')).toContainText('—');
 });
 ```
 
-> Les deux projets (ordinateur, téléphone) s'exécutent en parallèle sur le même serveur : chaque test utilise une adresse unique, construite avec le nom du projet et l'heure. Le dernier test vérifie l'auteur plutôt que le texte, car un autre test peut avoir laissé un message plus récent entre-temps.
+> Les deux projets (ordinateur, téléphone) s'exécutent en parallèle sur le même serveur : chaque test utilise une adresse unique, construite avec le nom du projet et l'heure. Le dernier test vérifie qu'un extrait signé s'affiche sans en fixer l'auteur, car un autre test peut avoir laissé un message plus récent entre-temps.
 
 Exécuter : `npx playwright test tests/e2e/rsvp.spec.ts --project=ordinateur`. Attendu : ÉCHEC (page 404).
 
@@ -1886,9 +1983,12 @@ export async function getDeps(): Promise<Deps> {
   const urlBase = ev.site.url_publique.replace(/\/+$/, '');
   return {
     db: await getDb(),
-    expediteur: getExpediteur(ev.email.expediteur_nom),
+    // Créé au moment de l'envoi : une configuration d'e-mail incomplète ne doit pas empêcher d'afficher les pages,
+    // elle fait seulement échouer l'envoi (réponse enregistrée, « l'e-mail arrivera plus tard »).
+    expediteur: { envoyer: (m) => getExpediteur(ev.email.expediteur_nom).envoyer(m) },
     ev,
-    maintenant: () => new Date(),
+    // MAINTENANT_TEST fige l'horloge pour les tests de bout en bout (sinon liés à la date réelle et à la date limite).
+    maintenant: () => (process.env.MAINTENANT_TEST ? new Date(process.env.MAINTENANT_TEST) : new Date()),
     urlBase,
     limite: Number(process.env.RSVP_LIMITE || 5),
     invitationPdf: async (r) => genererInvitation({
@@ -1917,7 +2017,7 @@ const err = (k: keyof ErreursRsvp) => (erreurs[k] ? ui(lang, erreurs[k]!) : '');
 ---
 <form class="rsvp" method="post">
   {Object.keys(erreurs).length > 0 && <p class="alerte" role="alert">{ui(lang, 'rsvp.erreurs')}</p>}
-  <div class="hp" aria-hidden="true"><label>Site web <input name="site_web" tabindex="-1" autocomplete="off" /></label></div>
+  <div class="hp" aria-hidden="true"><label>Ne pas remplir <input name="ne_pas_remplir" tabindex="-1" autocomplete="off" /></label></div>
 
   <fieldset class="presence" aria-describedby={erreurs.vient ? 'err-vient' : undefined}>
     <legend class="sr-only">{ui(lang, 'rsvp.presence')}</legend>
@@ -1934,14 +2034,14 @@ const err = (k: keyof ErreursRsvp) => (erreurs[k] ? ui(lang, erreurs[k]!) : '');
       {erreurs.nom && <p class="err" id="err-nom">{err('nom')}</p>}
     </div>
     <div>
-      <label for="telephone">{ui(lang, 'rsvp.telephone')} <small>{ui(lang, 'rsvp.facultatif')}</small></label>
+      <label for="telephone">{ui(lang, 'rsvp.telephone')}{' '}<small>{ui(lang, 'rsvp.facultatif')}</small></label>
       <input id="telephone" name="telephone" type="tel" value={champs.telephone} maxlength="30" autocomplete="tel"
         aria-invalid={erreurs.telephone ? 'true' : undefined} aria-describedby={erreurs.telephone ? 'err-telephone' : undefined} />
       {erreurs.telephone && <p class="err" id="err-telephone">{err('telephone')}</p>}
     </div>
   </div>
 
-  <label for="email">{ui(lang, 'rsvp.email')} <small>— {ui(lang, 'rsvp.email_aide')}</small></label>
+  <label for="email">{ui(lang, 'rsvp.email')}{' '}<small>— {ui(lang, 'rsvp.email_aide')}</small></label>
   <input id="email" name="email" type="email" value={champs.email} required maxlength="254" autocomplete="email" readonly={emailVerrouille}
     aria-invalid={erreurs.email ? 'true' : undefined} aria-describedby={erreurs.email ? 'err-email' : undefined} />
   {erreurs.email && <p class="err" id="err-email">{err('email')}</p>}
@@ -1971,7 +2071,7 @@ const err = (k: keyof ErreursRsvp) => (erreurs[k] ? ui(lang, erreurs[k]!) : '');
     </fieldset>
   </div>
 
-  <label for="message">{ui(lang, 'rsvp.message')} <small>{ui(lang, 'rsvp.message_aide')}</small></label>
+  <label for="message">{ui(lang, 'rsvp.message')}{' '}<small>{ui(lang, 'rsvp.message_aide')}</small></label>
   <textarea id="message" name="message" maxlength="1000" aria-invalid={erreurs.message ? 'true' : undefined}>{champs.message}</textarea>
   {erreurs.message && <p class="err">{err('message')}</p>}
 
@@ -2130,7 +2230,7 @@ let resultat: Resultat | null = null;
 if (Astro.request.method === 'POST') {
   champs = lireFormulaire(await Astro.request.formData());
   let ip = 'inconnue';
-  try { ip = Astro.clientAddress; } catch { /* adresse indisponible */ }
+  try { ip = Astro.clientAddress; } catch { console.warn('Adresse IP indisponible : limite d’envois partagée par tous les visiteurs'); }
   resultat = await soumettre(champs, lang, ip, deps);
 }
 const ouvert = rsvpOuvert(ev.evenement, deps.maintenant());
@@ -2150,6 +2250,7 @@ const avant = formatDate(ev.evenement.date_limite_rsvp + 'T12:00:00+00:00', lang
             <p>{ui(lang, 'rsvp.note_pour')} {nombrePersonnes(resultat.reponse)}{' '}
               {ui(lang, nombrePersonnes(resultat.reponse) > 1 ? 'rsvp.personnes' : 'rsvp.personne')}.</p>
           ) : <p>{ui(lang, 'rsvp.regrets')}</p>}
+          {resultat.reponse.vient && <p>{t(ev.rsvp.message_merci, lang)}</p>}
           {resultat.emailEnvoye ? (
             <p>{ui(lang, 'rsvp.email_parti')}{' '}<b>{resultat.reponse.email}</b>. {ui(lang, 'rsvp.indesirables')}</p>
           ) : <p>{ui(lang, 'rsvp.email_plus_tard')}</p>}
@@ -2182,7 +2283,11 @@ const avant = formatDate(ev.evenement.date_limite_rsvp + 'T12:00:00+00:00', lang
 - [ ] **Étape 7 : extrait du livre d'or sur l'Accueil**
 
 Dans `src/pages/[lang]/index.astro` :
-- dans le bloc de script en tête, importer `getDb` depuis `../../lib/db` et ajouter `const extrait = (await (await getDb()).messagesVisibles(1))[0];` ;
+- dans le bloc de script en tête, importer `getDb` depuis `../../lib/db` et ajouter (une panne de base ne doit pas faire tomber l'accueil) :
+```ts
+let extrait: { nom: string; message: string } | undefined;
+try { extrait = (await (await getDb()).messagesVisibles(1))[0]; } catch (e) { console.error('Livre d’or indisponible :', e); }
+```
 - dans la section `.tu-viens`, après le bouton, ajouter :
 ```astro
     {extrait && (
@@ -2379,7 +2484,7 @@ Les réponses sont enregistrées dans `.data/local.db`. Aucun e-mail n'est réel
 
 - [ ] **Étape 3 : suite complète**
 
-Exécuter : `npx vitest run && npx playwright test && npm run build`. Attendu : tout RÉUSSI dans les deux projets, sortie des tests unitaires propre.
+Exécuter : `npx vitest run && npx playwright test && npm run build && npx astro check`. Attendu : tout RÉUSSI dans les deux projets, sortie des tests unitaires propre, aucune erreur de type (corriger celles du code de ce plan ; signaler celles du plan 1 sans les corriger).
 
 - [ ] **Étape 4 : commit**
 
