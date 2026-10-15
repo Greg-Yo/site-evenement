@@ -4,7 +4,7 @@ import sharp from 'sharp';
 import { beforeAll, describe, expect, test } from 'vitest';
 import { parseEvent } from '../../src/lib/event';
 import fontkit from '@pdf-lib/fontkit';
-import { BAS_CONTENU, dessinable, genererInvitation, mesurerInvitation, type Polices } from '../../src/lib/pdf/invitation';
+import { BAS_CONTENU, couper, dessinable, genererInvitation, mesurerInvitation, tronquer, type Polices } from '../../src/lib/pdf/invitation';
 
 const ev = parseEvent(readFileSync('evenement/evenement.yaml', 'utf8'), readdirSync('evenement/photos').map((f) => `photos/${f}`));
 const polices: Polices = {
@@ -62,5 +62,35 @@ describe('dessinable', () => {
     doc.registerFontkit(fontkit);
     const f = await doc.embedFont(polices.texte, { subset: true });
     expect(dessinable('Coco 🎉 李 Zoë', f)).toBe('Coco Zoë');
+  });
+});
+
+describe('tronquer et couper', () => {
+  test('tronquer : coupe avec … et respecte la largeur ; texte court inchangé', async () => {
+    const doc = await PDFDocument.create();
+    doc.registerFontkit(fontkit);
+    const f = await doc.embedFont(polices.texte, { subset: true });
+    const long = 'rue des Lilas '.repeat(15).slice(0, 200);
+    const r = tronquer(long, f, 8.5, 271);
+    expect(r.endsWith('…')).toBe(true);
+    expect(f.widthOfTextAtSize(r, 8.5)).toBeLessThanOrEqual(271);
+    expect(tronquer('Court', f, 8.5, 271)).toBe('Court');
+  });
+
+  test('couper : un mot plus large que la ligne est découpé', async () => {
+    const doc = await PDFDocument.create();
+    doc.registerFontkit(fontkit);
+    const f = await doc.embedFont(polices.titre, { subset: false });
+    const mot = 'A'.repeat(80);
+    const lignes = couper(mot, f, 26, 371);
+    expect(lignes.length).toBeGreaterThan(1);
+    for (const l of lignes) expect(f.widthOfTextAtSize(l, 26)).toBeLessThanOrEqual(371);
+    expect(lignes.join('')).toBe(mot);
+  });
+
+  test('noms et adresses démesurés : le contenu reste au-dessus du QR code', async () => {
+    const r = { ...reponse, nom: 'X'.repeat(100), accompagnants: Array.from({ length: 10 }, () => 'Y'.repeat(100)), moments: ev.moments.map((m) => m.id) };
+    const m = await mesurerInvitation({ ev, reponse: r, photo, polices, urlQr: 'http://x' });
+    expect(m.yFin).toBeGreaterThanOrEqual(BAS_CONTENU);
   });
 });

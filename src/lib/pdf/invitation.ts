@@ -24,10 +24,48 @@ export function dessinable(texte: string, police: PDFFont): string {
   return [...texte].filter((ch) => jeu.has(ch.codePointAt(0)!)).join('').replace(/\s{2,}/g, ' ').trim();
 }
 
-function couper(texte: string, police: PDFFont, taille: number, largeur: number): string[] {
+const largeurs = new WeakMap<PDFFont, Map<string, number>>();
+/** Largeur d'un caractère (mise en cache : la mesure d'une chaîne est coûteuse). */
+function largeurCar(police: PDFFont, taille: number, ch: string): number {
+  let m = largeurs.get(police);
+  if (!m) largeurs.set(police, (m = new Map()));
+  const k = `${taille}|${ch}`;
+  let w = m.get(k);
+  if (w === undefined) m.set(k, (w = police.widthOfTextAtSize(ch, taille)));
+  return w;
+}
+
+/** Coupe un mot trop large pour `largeur` en morceaux qui tiennent, caractère par caractère. */
+function morceaux(mot: string, police: PDFFont, taille: number, largeur: number): string[] {
+  const res: string[] = [];
+  let cur = '';
+  let w = 0;
+  for (const ch of mot) {
+    const wc = largeurCar(police, taille, ch);
+    if (cur && w + wc > largeur) { res.push(cur); cur = ch; w = wc; }
+    else { cur += ch; w += wc; }
+  }
+  if (cur) res.push(cur);
+  return res;
+}
+
+/** Retourne le texte tel quel s'il tient dans `largeur`, sinon le coupe et ajoute « … ». */
+export function tronquer(texte: string, police: PDFFont, taille: number, largeur: number): string {
+  if (police.widthOfTextAtSize(texte, taille) <= largeur) return texte;
+  const chars = [...texte];
+  const fin = largeurCar(police, taille, '…');
+  let w = chars.reduce((a, ch) => a + largeurCar(police, taille, ch), 0);
+  while (chars.length && w + fin > largeur) w -= largeurCar(police, taille, chars.pop()!);
+  let res = chars.join('').trimEnd() + '…';
+  while (chars.length && police.widthOfTextAtSize(res, taille) > largeur) { chars.pop(); res = chars.join('').trimEnd() + '…'; }
+  return res;
+}
+
+export function couper(texte: string, police: PDFFont, taille: number, largeur: number): string[] {
   const lignes: string[] = [];
   let ligne = '';
-  for (const mot of texte.split(' ')) {
+  const mots = texte.split(' ').flatMap((m) => (police.widthOfTextAtSize(m, taille) > largeur ? morceaux(m, police, taille, largeur) : [m]));
+  for (const mot of mots) {
     const essai = ligne ? `${ligne} ${mot}` : mot;
     if (police.widthOfTextAtSize(essai, taille) <= largeur || !ligne) ligne = essai;
     else { lignes.push(ligne); ligne = mot; }
@@ -53,6 +91,7 @@ const DISPOSITIONS: Disposition[] = [
   { photo: true, tailleNoms: 18, interligne: 12 },
   { photo: false, tailleNoms: 18, interligne: 12 },
   { photo: false, tailleNoms: 14, interligne: 11 },
+  { photo: false, tailleNoms: 12, interligne: 10 },
 ];
 const [W, H] = A5;
 const LARGEUR = W - 2 * MARGE;
@@ -69,7 +108,7 @@ async function preparer(d: Donnees) {
   const doc = await PDFDocument.create();
   doc.registerFontkit(fontkit);
   const [fTitre, fTexte, fGras] = await Promise.all([
-    doc.embedFont(d.polices.titre, { subset: true }),
+    doc.embedFont(d.polices.titre, { subset: false }),
     doc.embedFont(d.polices.texte, { subset: true }),
     doc.embedFont(d.polices.texteGras, { subset: true }),
   ]);
@@ -78,8 +117,8 @@ async function preparer(d: Donnees) {
   const lignesMoments: Ligne[] = ev.moments.filter((m) => r.moments.includes(m.id)).flatMap((m) => {
     const l = findLieu(ev, m.lieu);
     return [
-      { texte: dessinable(`${momentLabel(m, lang)} : ${l.nom}`, fGras), police: fGras, taille: 9.5 },
-      { texte: dessinable(l.adresse, fTexte), police: fTexte, taille: 8.5 },
+      { texte: tronquer(dessinable(`${momentLabel(m, lang)} : ${l.nom}`, fGras), fGras, 9.5, LARGEUR - 100), police: fGras, taille: 9.5 },
+      { texte: tronquer(dessinable(l.adresse, fTexte), fTexte, 8.5, LARGEUR - 100), police: fTexte, taille: 8.5 },
     ];
   });
   let disp = DISPOSITIONS[0];
@@ -91,6 +130,16 @@ async function preparer(d: Donnees) {
       + (lignesMoments.length ? 12 + lignesMoments.length * disp.interligne + 14 : 0);
     yFin = HAUT_CONTENU - hauteur;
     if (yFin >= BAS_CONTENU) break;
+  }
+  if (yFin < BAS_CONTENU) {
+    // Même la disposition la plus compacte déborde : on tronque les noms avec « … ».
+    const fixe = 16 + 36 + (lignesMoments.length ? 12 + lignesMoments.length * disp.interligne + 14 : 0);
+    const max = Math.max(1, Math.floor((HAUT_CONTENU - BAS_CONTENU - fixe) / disp.tailleNoms));
+    if (lignesNoms.length > max) {
+      lignesNoms = lignesNoms.slice(0, max);
+      lignesNoms[max - 1] = tronquer(`${lignesNoms[max - 1]}…`, fTitre, disp.tailleNoms, LARGEUR);
+    }
+    yFin = HAUT_CONTENU - (16 + lignesNoms.length * disp.tailleNoms + 36 + (lignesMoments.length ? 12 + lignesMoments.length * disp.interligne + 14 : 0));
   }
   return { doc, fTitre, fTexte, fGras, lignesNoms, lignesMoments, disp, yFin };
 }
@@ -149,7 +198,7 @@ export async function genererInvitation(d: Donnees): Promise<Uint8Array> {
     page.drawRectangle({ x: MARGE, y, width: LARGEUR - 80, height: hauteur, color: rgb(1, 1, 1) });
     let ly = y + hauteur - 18;
     for (const l of lignesMoments) {
-      page.drawText(l.texte, { x: MARGE + 10, y: ly, size: l.taille, font: l.police, color: couleur(l.police === fGras ? c.texte : c.texteDoux), maxWidth: LARGEUR - 100 });
+      page.drawText(l.texte, { x: MARGE + 10, y: ly, size: l.taille, font: l.police, color: couleur(l.police === fGras ? c.texte : c.texteDoux) });
       ly -= disp.interligne;
     }
   }
