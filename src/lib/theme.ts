@@ -31,15 +31,27 @@ function mix(a: string, b: string, weightA: number): string {
   return hex(ca.map((v, i) => v * weightA + cb[i] * (1 - weightA)));
 }
 
-export function themeVars(theme: Theme): string {
+export function couleursTheme(theme: Theme) {
   const c = { ...SOLEIL, ...theme.couleurs };
+  return {
+    principale: c.principale,
+    principaleFonce: darkenUntil(c.principale, c.fond),
+    fond: c.fond,
+    texte: c.texte,
+    texteDoux: darkenUntil(mix(c.texte, c.fond, 0.75), c.fond),
+    douce: c.douce,
+  };
+}
+
+export function themeVars(theme: Theme): string {
+  const c = couleursTheme(theme);
   const p = { ...POLICES, ...theme.polices };
   const vars: Record<string, string> = {
     '--c-principale': c.principale,
-    '--c-principale-fonce': darkenUntil(c.principale, c.fond),
+    '--c-principale-fonce': c.principaleFonce,
     '--c-fond': c.fond,
     '--c-texte': c.texte,
-    '--c-texte-doux': darkenUntil(mix(c.texte, c.fond, 0.75), c.fond),
+    '--c-texte-doux': c.texteDoux,
     '--c-douce': c.douce,
     '--f-titres': `'${p.titres}', cursive`,
     '--f-texte': `'${p.texte}', system-ui, sans-serif`,
