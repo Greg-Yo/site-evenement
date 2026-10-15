@@ -34,6 +34,17 @@ function problemsOf(yaml: string, photos = PHOTOS): string[] {
 }
 
 describe('parseEvent', () => {
+  test('refuse un lien javascript:', () => {
+    const yaml = base + '\ninfos:\n  cadeaux: { texte: "x", lien_cagnotte: "javascript:alert(1)" }\n';
+    expect(problemsOf(yaml).some((p) => p.startsWith('infos.cadeaux.lien_cagnotte :'))).toBe(true);
+  });
+
+  test('logo facultatif', () => {
+    expect(parseEvent(base, PHOTOS).site.logo).toBeUndefined();
+    const ev = parseEvent(base.replace('site:\n', 'site:\n  logo: "Coco"\n'), PHOTOS);
+    expect(ev.site.logo).toBe('Coco');
+  });
+
   test('accepte une configuration minimale et normalise les textes', () => {
     const ev = parseEvent(base, PHOTOS);
     expect(ev.evenement.lieu_court).toEqual({ fr: 'Bordeaux' });

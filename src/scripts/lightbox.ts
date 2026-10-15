@@ -5,6 +5,7 @@ export function mountLightbox(root: ParentNode = document): void {
   const img = dlg.querySelector('img')!;
   const cap = dlg.querySelector('figcaption')!;
   let i = 0;
+  let ouvreur = 0;
 
   const show = (n: number) => {
     i = (n + links.length) % links.length;
@@ -17,6 +18,7 @@ export function mountLightbox(root: ParentNode = document): void {
   links.forEach((a, n) =>
     a.addEventListener('click', (e) => {
       e.preventDefault();
+      ouvreur = n;
       show(n);
       dlg.showModal();
     }),
@@ -29,5 +31,5 @@ export function mountLightbox(root: ParentNode = document): void {
     if (e.key === 'ArrowRight') show(i + 1);
     if (e.key === 'ArrowLeft') show(i - 1);
   });
-  dlg.addEventListener('close', () => links[i].focus());
+  dlg.addEventListener('close', () => links[ouvreur].focus());
 }

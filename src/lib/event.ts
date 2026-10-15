@@ -18,7 +18,8 @@ const Id = z.string().regex(/^[a-z0-9-]+$/, 'minuscules, chiffres et tirets uniq
 const schema = z.object({
   site: z.object({
     titre: L,
-    url_publique: z.url(),
+    logo: z.string().optional(),
+    url_publique: z.url({ protocol: /^https?$/ }),
     contact: z.object({ nom: z.string(), email: z.email(), telephone: z.string().optional() }),
   }),
   theme: z
@@ -70,7 +71,7 @@ const schema = z.object({
             etiquette: L.optional(),
             distance: z.string().optional(),
             prix: z.string().optional(),
-            lien: z.url().optional(),
+            lien: z.url({ protocol: /^https?$/ }).optional(),
             photo: Photo.optional(),
             lat: z.number().optional(),
             lng: z.number().optional(),
@@ -78,7 +79,7 @@ const schema = z.object({
         )
         .default([]),
       tenue: z.object({ texte: L, couleurs: z.array(Couleur).default([]) }).optional(),
-      cadeaux: z.object({ texte: L, lien_cagnotte: z.url().optional() }).optional(),
+      cadeaux: z.object({ texte: L, lien_cagnotte: z.url({ protocol: /^https?$/ }).optional() }).optional(),
       acces: z.object({ texte: L }).optional(),
       faq: z.array(z.object({ question: L, reponse: L })).default([]),
     })

@@ -5,7 +5,8 @@ import Polaroid from '../../components/Polaroid.astro';
 import Wave from '../../components/Wave.astro';
 import { Image } from 'astro:assets';
 import { findLieu, t } from '../../lib/event';
-import { formatDate, formatHeure, ui } from '../../lib/i18n';
+import { formatDate, ui } from '../../lib/i18n';
+import { momentLabel } from '../../lib/moments';
 import { getEvent } from '../../lib/load-event';
 import { photo } from '../../lib/photos';
 
@@ -55,7 +56,7 @@ const rotations = [-6, 4, -2, 7, -4];
           <li class="carte">
             {m.photo && <Image src={photo(m.photo)} alt="" width={400} height={240} class="carte-img" />}
             <div class="carte-txt">
-              <h3 class="hand">{t(m.jour, lang) && `${t(m.jour, lang)} `}{formatHeure(m.heure, lang)} · {t(m.titre, lang)}</h3>
+              <h3 class="hand">{momentLabel(m, lang)}</h3>
               <p>{t(m.description, lang)}</p>
               <p class="lieu">📍 {findLieu(ev, m.lieu).nom}</p>
             </div>

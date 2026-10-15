@@ -10,7 +10,7 @@ interface Props { lang: Lang; title?: string; current: 'accueil' | 'histoire' | 
 const { lang, title, current } = Astro.props;
 const ev = getEvent();
 const siteTitre = t(ev.site.titre, lang);
-const logo = siteTitre.split(' ')[0];
+const logo = ev.site.logo ?? siteTitre;
 ---
 <!doctype html>
 <html lang={lang} style={themeVars(ev.theme)}>

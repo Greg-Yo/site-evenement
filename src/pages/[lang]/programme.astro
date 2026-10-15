@@ -4,7 +4,8 @@ import PageHead from '../../components/PageHead.astro';
 import { Image } from 'astro:assets';
 import { findLieu, t } from '../../lib/event';
 import { googleMapsUrl, wazeUrl } from '../../lib/geo';
-import { formatDate, formatHeure, ui } from '../../lib/i18n';
+import { formatDate, ui } from '../../lib/i18n';
+import { momentLabel } from '../../lib/moments';
 import { getEvent } from '../../lib/load-event';
 import { photo } from '../../lib/photos';
 import type { MapData } from '../../scripts/map';
@@ -13,7 +14,7 @@ const lang = Astro.locals.lang;
 const ev = getEvent();
 const etapes = ev.moments.map((m, i) => {
   const lieu = findLieu(ev, m.lieu);
-  return { m, lieu, num: i + 1, titre: `${t(m.jour, lang) ? t(m.jour, lang) + ' ' : ''}${formatHeure(m.heure, lang)} · ${t(m.titre, lang)}` };
+  return { m, lieu, num: i + 1, titre: momentLabel(m, lang) };
 });
 const mapData: MapData = {
   lieux: ev.lieux

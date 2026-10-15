@@ -36,7 +36,7 @@ export function mountMap(el: HTMLElement, data: MapData): void {
     const m = L.marker([l.lat, l.lng], { icon: pin(orange, l.nums.join('·')), title: l.nom })
       .addTo(map)
       .bindPopup(`${l.titres.map((t) => `<b>${esc(t)}</b>`).join('<br>')}<br>${esc(l.nom)}`);
-    if (!markers.has(l.id)) markers.set(l.id, m);
+    markers.set(l.id, m);
     points.push([l.lat, l.lng]);
   }
   for (const h of data.hebergements) {

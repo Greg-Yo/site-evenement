@@ -12,7 +12,7 @@ Tout le site est rempli à partir de **`evenement.yaml`** et des photos du dossi
 ## Rubriques
 | Rubrique | Contenu |
 |---|---|
-| `site` | Titre du site, adresse publique (sert au QR code et aux e-mails), contact |
+| `site` | Titre du site, logo (facultatif, court ; à défaut, le titre complet), adresse publique (sert au QR code et aux e-mails), contact |
 | `theme` | Facultatif. Couleurs (`principale`, `fond`, `texte`, `douce`) au format `#rrggbb`, polices Google Fonts (`titres`, `texte`) |
 | `evenement` | Date et heure de début avec fuseau (`2027-06-14T16:00:00+02:00`), date limite de réponse (`2027-05-01`), lieu en quelques mots |
 | `accueil` | Accroche, photo principale, photo secondaire (facultative), légende |
