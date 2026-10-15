@@ -28,6 +28,17 @@ describe('outbox', () => {
     expect(readFileSync(join(d, 'message.txt'), 'utf8')).toBe('Bonjour');
     expect([...readFileSync(join(d, 'Invitation-Camille.pdf'))]).toEqual([37, 80, 68, 70]);
   });
+
+  test('neutralise les séparateurs de chemin dans les noms de pièces jointes', async () => {
+    const dossier = mkdtempSync(join(tmpdir(), 'outbox-'));
+    const ob = creerOutbox(dossier, () => new Date('2027-01-10T10:11:12.345Z'));
+    await ob.envoyer({ ...msg, piecesJointes: [{ nom: '..\\..\\x/y.pdf', contenu: new Uint8Array([1]), type: 'application/pdf' }] });
+    const [dir] = readdirSync(dossier);
+    expect(readdirSync(dossier)).toEqual([dir]);
+    const d = join(dossier, dir);
+    expect(readdirSync(d).sort()).toEqual(['.._.._x_y.pdf', 'message.html', 'message.txt', 'meta.json']);
+    expect(JSON.parse(readFileSync(join(d, 'meta.json'), 'utf8')).piecesJointes).toEqual(['.._.._x_y.pdf']);
+  });
 });
 
 describe('API', () => {
