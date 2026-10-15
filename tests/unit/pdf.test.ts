@@ -1,10 +1,10 @@
-import { readFileSync, readdirSync } from 'node:fs';
+import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { PDFDocument } from 'pdf-lib';
 import sharp from 'sharp';
 import { beforeAll, describe, expect, test } from 'vitest';
 import { parseEvent } from '../../src/lib/event';
 import fontkit from '@pdf-lib/fontkit';
-import { BAS_CONTENU, couper, dessinable, genererInvitation, mesurerInvitation, tronquer, type Polices } from '../../src/lib/pdf/invitation';
+import { BAS_CONTENU, couper, dessinable, OPTIONS_TITRE, genererInvitation, mesurerInvitation, tronquer, type Polices } from '../../src/lib/pdf/invitation';
 
 const ev = parseEvent(readFileSync('evenement/evenement.yaml', 'utf8'), readdirSync('evenement/photos').map((f) => `photos/${f}`));
 const polices: Polices = {
@@ -80,7 +80,7 @@ describe('tronquer et couper', () => {
   test('couper : un mot plus large que la ligne est découpé', async () => {
     const doc = await PDFDocument.create();
     doc.registerFontkit(fontkit);
-    const f = await doc.embedFont(polices.titre, { subset: false });
+    const f = await doc.embedFont(polices.titre, OPTIONS_TITRE);
     const mot = 'A'.repeat(80);
     const lignes = couper(mot, f, 26, 371);
     expect(lignes.length).toBeGreaterThan(1);
@@ -92,5 +92,24 @@ describe('tronquer et couper', () => {
     const r = { ...reponse, nom: 'X'.repeat(100), accompagnants: Array.from({ length: 10 }, () => 'Y'.repeat(100)), moments: ev.moments.map((m) => m.id) };
     const m = await mesurerInvitation({ ev, reponse: r, photo, polices, urlQr: 'http://x' });
     expect(m.yFin).toBeGreaterThanOrEqual(BAS_CONTENU);
+  }, 20_000);
+});
+
+describe('Caveat sans variantes contextuelles', () => {
+  test('la largeur de la chaîne entière égale la somme de ses parties', async () => {
+    const doc = await PDFDocument.create();
+    doc.registerFontkit(fontkit);
+    const f = await doc.embedFont(polices.titre, OPTIONS_TITRE);
+    const tout = f.widthOfTextAtSize('Camille Martin', 26);
+    const parties = f.widthOfTextAtSize('Camille ', 26) + f.widthOfTextAtSize('Martin', 26);
+    expect(Math.abs(tout - parties)).toBeLessThan(1);
   });
+
+  test('écrit des aperçus dans .data/ pour contrôle visuel', async () => {
+    mkdirSync('.data', { recursive: true });
+    const normal = { ...reponse, nom: 'Camille Martin', accompagnants: ['Léo Martin'] };
+    const dix = { ...reponse, accompagnants: Array.from({ length: 10 }, (_, i) => `Accompagnant numéro ${i + 1}`), moments: ev.moments.map((m) => m.id) };
+    writeFileSync('.data/apercu-normal.pdf', await genererInvitation({ ev, reponse: normal, photo, polices, urlQr: 'http://localhost:4321/fr/programme' }));
+    writeFileSync('.data/apercu-dix.pdf', await genererInvitation({ ev, reponse: dix, photo, polices, urlQr: 'http://localhost:4321/fr/programme' }));
+  }, 20_000);
 });

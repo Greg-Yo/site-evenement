@@ -15,6 +15,8 @@ type Donnees = {
 
 const A5: [number, number] = [419.53, 595.28];
 const MARGE = 24;
+/** Caveat : variantes contextuelles et ligatures désactivées (pdf-lib en avance mal les glyphes), police complète (le sous-ensemble la corrompt). */
+export const OPTIONS_TITRE = { subset: false, features: { calt: false, liga: false, clig: false, dlig: false, rlig: false, salt: false, ss01: false } };
 
 const couleur = (hex: string) => rgb(...([1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255) as [number, number, number]));
 
@@ -24,50 +26,55 @@ export function dessinable(texte: string, police: PDFFont): string {
   return [...texte].filter((ch) => jeu.has(ch.codePointAt(0)!)).join('').replace(/\s{2,}/g, ' ').trim();
 }
 
-const largeurs = new WeakMap<PDFFont, Map<string, number>>();
-/** Largeur d'un caractère (mise en cache : la mesure d'une chaîne est coûteuse). */
-function largeurCar(police: PDFFont, taille: number, ch: string): number {
-  let m = largeurs.get(police);
-  if (!m) largeurs.set(police, (m = new Map()));
-  const k = `${taille}|${ch}`;
+const mesures = new WeakMap<PDFFont, Map<string, number>>();
+/** Largeur d'une chaîne entière (crénage et substitutions compris), mise en cache car la mesure est coûteuse. */
+function mesurer(police: PDFFont, taille: number, texte: string): number {
+  let m = mesures.get(police);
+  if (!m) mesures.set(police, (m = new Map()));
+  const k = `${taille}|${texte}`;
   let w = m.get(k);
-  if (w === undefined) m.set(k, (w = police.widthOfTextAtSize(ch, taille)));
+  if (w === undefined) m.set(k, (w = police.widthOfTextAtSize(texte, taille)));
   return w;
+}
+
+/** Plus grand nombre de caractères (au moins 1) dont le préfixe, suivi de `suffixe`, tient dans `largeur`. */
+function plusLongPrefixe(chars: string[], police: PDFFont, taille: number, largeur: number, suffixe = ''): number {
+  let lo = 0;
+  let hi = chars.length;
+  while (lo < hi) {
+    const mid = Math.ceil((lo + hi) / 2);
+    if (mesurer(police, taille, chars.slice(0, mid).join('') + suffixe) <= largeur) lo = mid; else hi = mid - 1;
+  }
+  return lo;
 }
 
 /** Coupe un mot trop large pour `largeur` en morceaux qui tiennent, caractère par caractère. */
 function morceaux(mot: string, police: PDFFont, taille: number, largeur: number): string[] {
   const res: string[] = [];
-  let cur = '';
-  let w = 0;
-  for (const ch of mot) {
-    const wc = largeurCar(police, taille, ch);
-    if (cur && w + wc > largeur) { res.push(cur); cur = ch; w = wc; }
-    else { cur += ch; w += wc; }
+  let reste = [...mot];
+  while (reste.length) {
+    const n = Math.max(1, plusLongPrefixe(reste, police, taille, largeur));
+    res.push(reste.slice(0, n).join(''));
+    reste = reste.slice(n);
   }
-  if (cur) res.push(cur);
   return res;
 }
 
 /** Retourne le texte tel quel s'il tient dans `largeur`, sinon le coupe et ajoute « … ». */
 export function tronquer(texte: string, police: PDFFont, taille: number, largeur: number): string {
-  if (police.widthOfTextAtSize(texte, taille) <= largeur) return texte;
+  if (mesurer(police, taille, texte) <= largeur) return texte;
   const chars = [...texte];
-  const fin = largeurCar(police, taille, '…');
-  let w = chars.reduce((a, ch) => a + largeurCar(police, taille, ch), 0);
-  while (chars.length && w + fin > largeur) w -= largeurCar(police, taille, chars.pop()!);
-  let res = chars.join('').trimEnd() + '…';
-  while (chars.length && police.widthOfTextAtSize(res, taille) > largeur) { chars.pop(); res = chars.join('').trimEnd() + '…'; }
-  return res;
+  const n = plusLongPrefixe(chars, police, taille, largeur, '…');
+  return chars.slice(0, n).join('').trimEnd() + '…';
 }
 
 export function couper(texte: string, police: PDFFont, taille: number, largeur: number): string[] {
   const lignes: string[] = [];
   let ligne = '';
-  const mots = texte.split(' ').flatMap((m) => (police.widthOfTextAtSize(m, taille) > largeur ? morceaux(m, police, taille, largeur) : [m]));
+  const mots = texte.split(' ').flatMap((m) => (mesurer(police, taille, m) > largeur ? morceaux(m, police, taille, largeur) : [m]));
   for (const mot of mots) {
     const essai = ligne ? `${ligne} ${mot}` : mot;
-    if (police.widthOfTextAtSize(essai, taille) <= largeur || !ligne) ligne = essai;
+    if (mesurer(police, taille, essai) <= largeur || !ligne) ligne = essai;
     else { lignes.push(ligne); ligne = mot; }
   }
   if (ligne) lignes.push(ligne);
@@ -108,7 +115,7 @@ async function preparer(d: Donnees) {
   const doc = await PDFDocument.create();
   doc.registerFontkit(fontkit);
   const [fTitre, fTexte, fGras] = await Promise.all([
-    doc.embedFont(d.polices.titre, { subset: false }),
+    doc.embedFont(d.polices.titre, OPTIONS_TITRE),
     doc.embedFont(d.polices.texte, { subset: true }),
     doc.embedFont(d.polices.texteGras, { subset: true }),
   ]);
