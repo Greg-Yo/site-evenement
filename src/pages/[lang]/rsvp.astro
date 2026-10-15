@@ -1,0 +1,65 @@
+---
+import Base from '../../layouts/Base.astro';
+import PageHead from '../../components/PageHead.astro';
+import RsvpForm from '../../components/RsvpForm.astro';
+import LivreDor from '../../components/LivreDor.astro';
+import { t } from '../../lib/event';
+import { formatDate, ui } from '../../lib/i18n';
+import { CHAMPS_VIDES, lireFormulaire, nombrePersonnes, rsvpOuvert, type ChampsRsvp } from '../../lib/rsvp';
+import { soumettre, type Resultat } from '../../lib/rsvp-service';
+import { getDeps } from '../../lib/services';
+
+const lang = Astro.locals.lang;
+const deps = await getDeps();
+const ev = deps.ev;
+let champs: ChampsRsvp = CHAMPS_VIDES;
+let resultat: Resultat | null = null;
+if (Astro.request.method === 'POST') {
+  champs = lireFormulaire(await Astro.request.formData());
+  let ip = 'inconnue';
+  try { ip = Astro.clientAddress; } catch { console.warn('Adresse IP indisponible : limite d’envois partagée par tous les visiteurs'); }
+  resultat = await soumettre(champs, lang, ip, deps);
+}
+const ouvert = rsvpOuvert(ev.evenement, deps.maintenant());
+const messages = await deps.db.messagesVisibles(30);
+const afficherFormulaire = ouvert && (!resultat || resultat.type === 'invalide' || resultat.type === 'limite');
+const avant = formatDate(ev.evenement.date_limite_rsvp + 'T12:00:00+00:00', lang);
+---
+<Base lang={lang} current="rsvp" title={t(ev.rsvp.titre, lang)}>
+  <PageHead title={t(ev.rsvp.titre, lang)} subtitle={`${ui(lang, 'accueil.avant')} ${avant}`} />
+  <div class="container grille">
+    <div>
+      {resultat?.type === 'ok' && (
+        <div class="carte-resultat" role="status">
+          <p class="gros" aria-hidden="true">{resultat.reponse.vient ? '🥳' : '💌'}</p>
+          <h2 class="hand">{ui(lang, 'rsvp.merci')} {resultat.reponse.nom.split(' ')[0]} !</h2>
+          {resultat.reponse.vient ? (
+            <p>{ui(lang, 'rsvp.note_pour')} {nombrePersonnes(resultat.reponse)}{' '}
+              {ui(lang, nombrePersonnes(resultat.reponse) > 1 ? 'rsvp.personnes' : 'rsvp.personne')}.</p>
+          ) : <p>{ui(lang, 'rsvp.regrets')}</p>}
+          {resultat.reponse.vient && <p>{t(ev.rsvp.message_merci, lang)}</p>}
+          {resultat.emailEnvoye ? (
+            <p>{ui(lang, 'rsvp.email_parti')}{' '}<b>{resultat.reponse.email}</b>. {ui(lang, 'rsvp.indesirables')}</p>
+          ) : <p>{ui(lang, 'rsvp.email_plus_tard')}</p>}
+          <a class="btn btn-contour" href={`/${lang}/`}>{ui(lang, 'rsvp.retour')}</a>
+        </div>
+      )}
+      {resultat?.type === 'ignore' && <div class="carte-resultat" role="status"><h2 class="hand">{ui(lang, 'rsvp.merci')} !</h2></div>}
+      {resultat?.type === 'doublon' && <p class="info" role="status">{ui(lang, 'rsvp.doublon')}</p>}
+      {resultat?.type === 'limite' && <p class="info" role="alert">{ui(lang, 'rsvp.limite')}</p>}
+      {(!ouvert || resultat?.type === 'ferme') && <p class="info" role="status">{ui(lang, 'rsvp.ferme')}</p>}
+      {afficherFormulaire && (
+        <RsvpForm lang={lang} ev={ev} champs={champs} erreurs={resultat?.type === 'invalide' ? resultat.erreurs : {}} libelleEnvoyer={ui(lang, 'rsvp.envoyer')} />
+      )}
+    </div>
+    <LivreDor lang={lang} messages={messages} />
+  </div>
+</Base>
+<style>
+  .grille { display: grid; grid-template-columns: 1.1fr .9fr; gap: 36px; padding-block: 20px 48px; align-items: start; }
+  .carte-resultat { background: #fff; border-radius: 22px; padding: 32px 24px; text-align: center; box-shadow: 0 10px 26px rgba(58,36,25,.12); }
+  .carte-resultat .gros { font-size: 3.5rem; margin: 0; }
+  .carte-resultat h2 { font-size: 2.8rem; color: var(--c-principale); margin: 4px 0 8px; }
+  .info { background: var(--c-douce); border-radius: 14px; padding: 14px 18px; font-weight: 700; margin: 0 0 16px; }
+  @media (max-width: 860px) { .grille { grid-template-columns: 1fr; } }
+</style>

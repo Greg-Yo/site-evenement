@@ -1,0 +1,108 @@
+---
+import type { EventConfig, Lang } from '../lib/event';
+import { ui } from '../lib/i18n';
+import { momentLabel } from '../lib/moments';
+import type { ChampsRsvp, ErreursRsvp } from '../lib/rsvp';
+interface Props { lang: Lang; ev: EventConfig; champs: ChampsRsvp; erreurs?: ErreursRsvp; libelleEnvoyer: string; emailVerrouille?: boolean }
+const { lang, ev, champs, erreurs = {}, libelleEnvoyer, emailVerrouille = false } = Astro.props;
+const acc = [...champs.accompagnants, '', '', ''].slice(0, Math.max(3, champs.accompagnants.length + 1));
+const err = (k: keyof ErreursRsvp) => (erreurs[k] ? ui(lang, erreurs[k]!) : '');
+---
+<form class="rsvp" method="post">
+  {Object.keys(erreurs).length > 0 && <p class="alerte" role="alert">{ui(lang, 'rsvp.erreurs')}</p>}
+  <div class="hp" aria-hidden="true"><label>Ne pas remplir <input name="ne_pas_remplir" tabindex="-1" autocomplete="off" /></label></div>
+
+  <fieldset class="presence" aria-describedby={erreurs.vient ? 'err-vient' : undefined}>
+    <legend class="sr-only">{ui(lang, 'rsvp.presence')}</legend>
+    <label class="choix"><input type="radio" name="vient" value="oui" checked={champs.vient === true} required /> <span>{ui(lang, 'rsvp.je_viens')}</span></label>
+    <label class="choix"><input type="radio" name="vient" value="non" checked={champs.vient === false} /> <span>{ui(lang, 'rsvp.je_ne_viens_pas')}</span></label>
+  </fieldset>
+  {erreurs.vient && <p class="err" id="err-vient">{err('vient')}</p>}
+
+  <div class="ligne">
+    <div>
+      <label for="nom">{ui(lang, 'rsvp.nom')}</label>
+      <input id="nom" name="nom" value={champs.nom} required minlength="2" maxlength="100" autocomplete="name"
+        aria-invalid={erreurs.nom ? 'true' : undefined} aria-describedby={erreurs.nom ? 'err-nom' : undefined} />
+      {erreurs.nom && <p class="err" id="err-nom">{err('nom')}</p>}
+    </div>
+    <div>
+      <label for="telephone">{ui(lang, 'rsvp.telephone')}{' '}<small>{ui(lang, 'rsvp.facultatif')}</small></label>
+      <input id="telephone" name="telephone" type="tel" value={champs.telephone} maxlength="30" autocomplete="tel"
+        aria-invalid={erreurs.telephone ? 'true' : undefined} aria-describedby={erreurs.telephone ? 'err-telephone' : undefined} />
+      {erreurs.telephone && <p class="err" id="err-telephone">{err('telephone')}</p>}
+    </div>
+  </div>
+
+  <label for="email">{ui(lang, 'rsvp.email')}{' '}<small>— {ui(lang, 'rsvp.email_aide')}</small></label>
+  <input id="email" name="email" type="email" value={champs.email} required maxlength="254" autocomplete="email" readonly={emailVerrouille}
+    aria-invalid={erreurs.email ? 'true' : undefined} aria-describedby={erreurs.email ? 'err-email' : undefined} />
+  {erreurs.email && <p class="err" id="err-email">{err('email')}</p>}
+
+  <div class="si-vient">
+    <fieldset>
+      <legend>{ui(lang, 'rsvp.accompagnants')}</legend>
+      <ul class="accompagnants">
+        {acc.map((a, i) => (
+          <li>
+            <label class="sr-only" for={`acc-${i + 1}`}>{ui(lang, 'rsvp.accompagnant')} {i + 1}</label>
+            <input id={`acc-${i + 1}`} name="accompagnant" value={a} maxlength="100" placeholder={`${ui(lang, 'rsvp.accompagnant')} ${i + 1}`} />
+            <button type="button" class="retirer" hidden aria-label={`${ui(lang, 'rsvp.retirer')} ${i + 1}`}>✕</button>
+          </li>
+        ))}
+      </ul>
+      <button type="button" class="ajouter" hidden>{ui(lang, 'rsvp.ajouter')}</button>
+      {erreurs.accompagnants && <p class="err">{err('accompagnants')}</p>}
+    </fieldset>
+
+    <fieldset class="moments" aria-describedby={erreurs.moments ? 'err-moments' : undefined}>
+      <legend>{ui(lang, 'rsvp.moments')}</legend>
+      {ev.moments.map((m) => (
+        <label><input type="checkbox" name="moment" value={m.id} checked={champs.moments.includes(m.id)} /> {momentLabel(m, lang)}</label>
+      ))}
+      {erreurs.moments && <p class="err" id="err-moments">{err('moments')}</p>}
+    </fieldset>
+  </div>
+
+  <label for="message">{ui(lang, 'rsvp.message')}{' '}<small>{ui(lang, 'rsvp.message_aide')}</small></label>
+  <textarea id="message" name="message" maxlength="1000" aria-invalid={erreurs.message ? 'true' : undefined}>{champs.message}</textarea>
+  {erreurs.message && <p class="err">{err('message')}</p>}
+
+  <button class="btn btn-plein envoyer" type="submit">{libelleEnvoyer}</button>
+  <p class="note">{ui(lang, 'rsvp.note')}</p>
+</form>
+
+<style>
+  .rsvp { background: #fff; border-radius: 22px; padding: 26px 28px; box-shadow: 0 10px 26px rgba(58,36,25,.12); }
+  .rsvp label, .rsvp legend { display: block; font-weight: 800; margin: 16px 0 6px; }
+  .rsvp small { font-weight: 600; color: var(--c-texte-doux); }
+  .rsvp input:not([type=radio]):not([type=checkbox]), .rsvp textarea { width: 100%; border: 2px solid #ecdcd0; border-radius: 12px; padding: 11px 14px; font: inherit; background: var(--c-fond); }
+  .rsvp input[aria-invalid=true], .rsvp textarea[aria-invalid=true] { border-color: #b3261e; }
+  .rsvp textarea { min-height: 100px; resize: vertical; }
+  fieldset { border: 0; padding: 0; margin: 0; }
+  .presence { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .choix { margin: 0 !important; position: relative; }
+  .choix input { position: absolute; opacity: 0; inset: 0; }
+  .choix span { display: block; text-align: center; padding: 16px; border-radius: 14px; border: 2px solid #ecdcd0; background: var(--c-fond); font-size: 1.05rem; cursor: pointer; }
+  .choix input:checked + span { background: var(--c-principale-fonce); border-color: var(--c-principale-fonce); color: var(--c-fond); }
+  .choix input:focus-visible + span { outline: 3px solid var(--c-texte); outline-offset: 3px; }
+  .ligne { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .accompagnants { list-style: none; padding: 0; margin: 0; }
+  .accompagnants li { display: flex; gap: 8px; margin-bottom: 8px; }
+  .accompagnants li[hidden], .rsvp [hidden] { display: none; }
+  .retirer { background: none; border: 0; font-size: 1.1rem; cursor: pointer; color: var(--c-texte-doux); }
+  .ajouter { background: none; border: 2px dashed var(--c-principale-fonce); color: var(--c-principale-fonce); border-radius: 12px; padding: 9px 14px; font: inherit; font-weight: 800; cursor: pointer; }
+  .moments label { display: flex; align-items: center; gap: 10px; font-weight: 600; margin: 6px 0; background: var(--c-fond); border: 2px solid #ecdcd0; border-radius: 12px; padding: 10px 14px; }
+  .moments input { accent-color: var(--c-principale-fonce); width: 18px; height: 18px; }
+  .err { color: #b3261e; font-weight: 700; margin: 6px 0 0; }
+  .alerte { background: #fde7e5; color: #8d1f18; border-radius: 12px; padding: 10px 14px; font-weight: 700; margin: 0 0 8px; }
+  .envoyer { width: 100%; margin-top: 22px; font-size: 1.1rem; }
+  .note { font-size: .9rem; color: var(--c-texte-doux); text-align: center; margin: 10px 0 0; }
+  .hp { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
+  @media (max-width: 560px) { .ligne { grid-template-columns: 1fr; } .rsvp { padding: 20px 16px; } }
+</style>
+
+<script>
+  import { monterFormulaire } from '../scripts/rsvp-form';
+  monterFormulaire();
+</script>

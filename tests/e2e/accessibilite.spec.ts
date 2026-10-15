@@ -31,5 +31,5 @@ test('menu téléphone : s’ouvre au clic', async ({ page }) => {
 
 test('pied de page : espace avant le courriel', async ({ page }) => {
   await page.goto('/fr/');
-  await expect(page.locator('footer')).toContainText('Une question ? contact@exemple.fr');
+  await expect(page.getByRole('contentinfo')).toContainText('Une question ? contact@exemple.fr');
 });
