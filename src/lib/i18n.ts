@@ -76,6 +76,13 @@ const DICT = {
   'infos.ecrire': { fr: 'Écrire un e-mail', en: 'Send an email' },
   'pied.question': { fr: 'Une question ?', en: 'Any question?' },
   'erreur.config': { fr: 'Le contenu de l’événement contient des erreurs', en: 'The event content contains errors' },
+  'rsvp.err.vient': { fr: 'Indique si tu viens ou non.', en: 'Tell us whether you are coming.' },
+  'rsvp.err.nom': { fr: 'Indique ton prénom et ton nom (2 à 100 caractères).', en: 'Enter your first and last name (2–100 characters).' },
+  'rsvp.err.email': { fr: 'Adresse e-mail invalide.', en: 'Invalid email address.' },
+  'rsvp.err.telephone': { fr: 'Numéro trop long (30 caractères au plus).', en: 'Phone number too long (30 characters max).' },
+  'rsvp.err.accompagnants': { fr: '10 accompagnants au plus, 100 caractères chacun.', en: 'Up to 10 plus-ones, 100 characters each.' },
+  'rsvp.err.moments': { fr: 'Choisis au moins un moment.', en: 'Choose at least one moment.' },
+  'rsvp.err.message': { fr: 'Message trop long (1 000 caractères au plus).', en: 'Message too long (1,000 characters max).' },
 } as const satisfies Record<string, Record<Lang, string>>;
 
 export type UiKey = keyof typeof DICT;
