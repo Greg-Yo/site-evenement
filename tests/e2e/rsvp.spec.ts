@@ -102,3 +102,32 @@ test('l’accueil affiche un extrait du livre d’or', async ({ page }, info) =>
   // Un autre test peut avoir laissé un message plus récent : on vérifie qu'un extrait signé s'affiche.
   await expect(page.locator('.tu-viens blockquote footer')).toContainText('—');
 });
+
+test('modifier sa réponse via le lien de l’e-mail', async ({ page }, info) => {
+  const adresse = email(info, 'modif');
+  await page.goto('/fr/rsvp');
+  await page.getByLabel('🎉 Je viens !').check();
+  await page.getByLabel('Prénom & nom').fill('Emma Wilson');
+  await page.getByLabel(/^E-mail/).fill(adresse);
+  await page.getByLabel('16 h · Accueil').check();
+  await page.getByRole('button', { name: 'Envoyer ma réponse' }).click();
+  await expect(page.getByText("C'est noté pour 1 personne")).toBeVisible();
+
+  const lien = messagesEnvoyesA(adresse)[0].html.match(/href="([^"]*\/rsvp\/modifier\?jeton=[^"]+)"/)![1].replace(/&amp;/g, '&');
+  await page.goto(new URL(lien).pathname + new URL(lien).search);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Modifier ma réponse');
+  await expect(page.getByLabel('Prénom & nom')).toHaveValue('Emma Wilson');
+  await expect(page.getByLabel(/^E-mail/)).toHaveAttribute('readonly', '');
+  await expect(page.getByLabel('16 h · Accueil')).toBeChecked();
+  await page.getByRole('button', { name: '+ Ajouter un accompagnant' }).click();
+  await page.getByLabel('Accompagnant 1').fill('James Wilson');
+  await page.getByRole('button', { name: 'Enregistrer les modifications' }).click();
+  await expect(page.getByText('Réponse mise à jour !')).toBeVisible();
+  expect(messagesEnvoyesA(adresse)).toHaveLength(2);
+});
+
+test('lien de modification invalide', async ({ page }) => {
+  await page.goto('/fr/rsvp/modifier?jeton=faux');
+  await expect(page.getByText("Ce lien de modification n'est pas valide.")).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Répondre au formulaire' })).toHaveAttribute('href', '/fr/rsvp');
+});

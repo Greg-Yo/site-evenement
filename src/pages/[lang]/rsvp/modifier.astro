@@ -1,0 +1,44 @@
+---
+import Base from '../../../layouts/Base.astro';
+import PageHead from '../../../components/PageHead.astro';
+import RsvpForm from '../../../components/RsvpForm.astro';
+import { ui } from '../../../lib/i18n';
+import { CHAMPS_VIDES, lireFormulaire, rsvpOuvert, type ChampsRsvp } from '../../../lib/rsvp';
+import { modifier, type Resultat } from '../../../lib/rsvp-service';
+import { getDeps } from '../../../lib/services';
+
+const lang = Astro.locals.lang;
+const deps = await getDeps();
+const jeton = Astro.url.searchParams.get('jeton') ?? '';
+const existante = jeton ? await deps.db.parJeton(jeton) : null;
+let champs: ChampsRsvp = existante
+  ? { ...CHAMPS_VIDES, vient: existante.vient, nom: existante.nom, email: existante.email, telephone: existante.telephone ?? '',
+      accompagnants: existante.accompagnants, moments: existante.moments, message: existante.message ?? '' }
+  : CHAMPS_VIDES;
+let resultat: Resultat | null = null;
+if (existante && Astro.request.method === 'POST') {
+  champs = { ...lireFormulaire(await Astro.request.formData()), email: existante.email, piege: '' };
+  resultat = await modifier(jeton, champs, lang, deps);
+}
+const ouvert = rsvpOuvert(deps.ev.evenement, deps.maintenant());
+---
+<Base lang={lang} current="rsvp" title={ui(lang, 'modif.titre')}>
+  <PageHead title={ui(lang, 'modif.titre')} />
+  <div class="container etroit">
+    {!existante && (
+      <p class="info" role="alert">{ui(lang, 'modif.introuvable')}{' '}<a href={`/${lang}/rsvp`}>{ui(lang, 'modif.repondre')}</a></p>
+    )}
+    {existante && resultat?.type === 'ok' && (
+      <p class="info" role="status">{resultat.emailEnvoye ? ui(lang, 'modif.ok') : ui(lang, 'rsvp.email_plus_tard')}</p>
+    )}
+    {existante && (!ouvert || resultat?.type === 'ferme') && <p class="info" role="status">{ui(lang, 'rsvp.ferme')}</p>}
+    {existante && ouvert && resultat?.type !== 'ok' && (
+      <RsvpForm lang={lang} ev={deps.ev} champs={champs} erreurs={resultat?.type === 'invalide' ? resultat.erreurs : {}}
+        libelleEnvoyer={ui(lang, 'rsvp.enregistrer')} emailVerrouille />
+    )}
+  </div>
+</Base>
+<style>
+  .etroit { max-width: 720px; padding-block: 20px 48px; }
+  .info { background: var(--c-douce); border-radius: 14px; padding: 14px 18px; font-weight: 700; }
+</style>
