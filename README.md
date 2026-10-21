@@ -16,6 +16,10 @@ npm run dev
 
 Ouvrir http://localhost:4321. Le contenu se modifie dans [`evenement/`](evenement/LISEZMOI.md).
 
+### Réponses et e-mails en local
+
+Les réponses sont enregistrées dans `.data/local.db`. Aucun e-mail n'est réellement envoyé : chaque e-mail (avec l'invitation PDF) est rangé dans un dossier de `.data/outbox/` ; ouvrir `message.html` dans un navigateur pour le voir.
+
 ## Tests
 
 ```bash

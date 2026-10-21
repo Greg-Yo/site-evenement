@@ -24,5 +24,10 @@ Tout le site est rempli à partir de **`evenement.yaml`** et des photos du dossi
 | `rsvp` | Titre de la page de réponse, message de remerciement |
 | `email` | Nom de l'expéditeur, objet de l'e-mail |
 
+## Invitation PDF et e-mails
+- La photo principale (`accueil.photo_principale`) figure sur l'invitation PDF.
+- Les e-mails utilisent `email.expediteur_nom` et `email.objet`.
+- Les liens des e-mails et le QR code reposent sur `site.url_publique`, à remplacer par l'adresse du site en ligne.
+
 ## Crédits des photos d'exemple
 Photos libres de droits issues d'Unsplash (licence Unsplash). Remplace-les par les tiennes.
