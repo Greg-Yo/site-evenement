@@ -52,11 +52,21 @@ export function valider(c: ChampsRsvp, momentIds: string[], langue: Lang):
   };
 }
 
+/** Décalage en minutes de l'heure ISO donnée (0 si absent ou « Z »). */
+function decalageMinutes(iso: string): number {
+  const m = iso.match(/([+-])(\d{2}):?(\d{2})$/);
+  return m ? (m[1] === '-' ? -1 : 1) * (Number(m[2]) * 60 + Number(m[3])) : 0;
+}
+
 /** Date du jour (AAAA-MM-JJ) dans le fuseau de l'heure ISO donnée en référence. */
 function dateLocale(maintenant: Date, isoReference: string): string {
-  const m = isoReference.match(/([+-])(\d{2}):?(\d{2})$/);
-  const minutes = m ? (m[1] === '-' ? -1 : 1) * (Number(m[2]) * 60 + Number(m[3])) : 0;
-  return new Date(maintenant.getTime() + minutes * 60_000).toISOString().slice(0, 10);
+  return new Date(maintenant.getTime() + decalageMinutes(isoReference) * 60_000).toISOString().slice(0, 10);
+}
+
+/** Horodatage JJ/MM/AAAA HH:MM dans le fuseau de l'heure ISO donnée en référence. */
+export function horodatageLocal(iso: string, isoReference: string): string {
+  const d = new Date(new Date(iso).getTime() + decalageMinutes(isoReference) * 60_000).toISOString();
+  return `${d.slice(8, 10)}/${d.slice(5, 7)}/${d.slice(0, 4)} ${d.slice(11, 16)}`;
 }
 
 // Le décalage horaire de date_debut sert pour toute la période : un changement d'heure entre la date limite et l'événement décale la clôture d'une heure.
