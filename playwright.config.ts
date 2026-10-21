@@ -13,7 +13,8 @@ export default defineConfig({
   webServer: {
     // Le nettoyage fait partie de la commande : il a lieu une seule fois, avant que le serveur n'ouvre la base.
     command: `node scripts/reset-test-data.mjs && node node_modules/astro/bin/astro.mjs dev --port ${PORT}`,
-    url: `http://localhost:${PORT}/fr/infos`,
+    // La page de réponse est la plus lourde à compiler (PDF, polices, sharp) : on attend sa compilation avant les tests.
+    url: `http://localhost:${PORT}/fr/rsvp`,
     reuseExistingServer: false,
     timeout: 120_000,
     env: {
