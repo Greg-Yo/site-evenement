@@ -22,6 +22,13 @@ beforeEach(async () => {
 });
 
 describe('soumettre', () => {
+  test('échec d’envoi puis échec de la base : pas d’exception, emailEnvoye = false', async () => {
+    deps.expediteur = { envoyer: async () => { throw new Error('panne'); } };
+    const marquer = vi.spyOn(db, 'marquerEmailEnvoye').mockRejectedValue(new Error('base indisponible'));
+    const r = await soumettre(champs, 'fr', '1.1.1.1', deps);
+    expect(r.type === 'ok' && r.emailEnvoye).toBe(false);
+    marquer.mockRestore();
+  });
   test('vient : enregistre, envoie confirmation + PDF, marque l’e-mail envoyé', async () => {
     const r = await soumettre(champs, 'fr', '1.1.1.1', deps);
     expect(r.type).toBe('ok');
@@ -95,6 +102,12 @@ describe('soumettre', () => {
 });
 
 describe('modifier', () => {
+  test('modifier : réponse supprimée entre la lecture et l’écriture → introuvable', async () => {
+    const r = await soumettre(champs, 'fr', '1.1.1.1', deps);
+    if (r.type !== 'ok') throw new Error();
+    vi.spyOn(db, 'modifier').mockResolvedValueOnce(null);
+    expect(await modifier(r.reponse.jeton, champs, 'fr', deps)).toEqual({ type: 'introuvable' });
+  });
   test('met à jour et renvoie une confirmation ; l’e-mail ne change pas', async () => {
     const r = await soumettre(champs, 'fr', '1.1.1.1', deps);
     if (r.type !== 'ok') throw new Error();

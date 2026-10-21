@@ -13,12 +13,12 @@ export function payloadBrevo(m: Message, de: De) {
 
 export function payloadResend(m: Message, de: De) {
   return {
-    from: `${de.nom} <${de.email}>`, to: [m.a], subject: m.sujet, html: m.html, text: m.texte,
+    from: `"${de.nom.replace(/["\\]/g, '')}" <${de.email}>`, to: [m.a], subject: m.sujet, html: m.html, text: m.texte,
     ...(m.piecesJointes?.length ? { attachments: m.piecesJointes.map((p) => ({ filename: p.nom, content: b64(p.contenu) })) } : {}),
   };
 }
 
-export function creerApi(o: { fournisseur: 'brevo' | 'resend'; cle: string; de: De; fetch?: typeof fetch }): Expediteur {
+export function creerApi(o: { fournisseur: 'brevo' | 'resend'; cle: string; de: De; fetch?: typeof fetch; delaiMs?: number }): Expediteur {
   const f = o.fetch ?? fetch;
   return {
     async envoyer(m: Message) {
@@ -27,8 +27,18 @@ export function creerApi(o: { fournisseur: 'brevo' | 'resend'; cle: string; de: 
         method: 'POST',
         headers: { 'content-type': 'application/json', ...(brevo ? { 'api-key': o.cle } : { authorization: `Bearer ${o.cle}` }) },
         body: JSON.stringify(brevo ? payloadBrevo(m, o.de) : payloadResend(m, o.de)),
+        signal: AbortSignal.timeout(o.delaiMs ?? 10_000),
       });
-      if (!res.ok) throw new Error(`Envoi d'e-mail refusé par ${o.fournisseur} : ${res.status} ${await res.text()}`);
+      if (!res.ok) {
+        // Le corps peut contenir l'adresse du destinataire : on ne garde que le statut et un code court.
+        let code = '';
+        try {
+          const corps = (await res.json()) as { code?: unknown; name?: unknown };
+          const c = brevo ? corps.code : corps.name;
+          if (typeof c === 'string' && c.length <= 60) code = ` (${c})`;
+        } catch { /* corps absent ou illisible */ }
+        throw new Error(`Envoi d'e-mail refusé par ${o.fournisseur} : HTTP ${res.status}${code}`);
+      }
     },
   };
 }
