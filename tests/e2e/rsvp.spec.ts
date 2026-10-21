@@ -124,10 +124,53 @@ test('modifier sa réponse via le lien de l’e-mail', async ({ page }, info) =>
   await page.getByRole('button', { name: 'Enregistrer les modifications' }).click();
   await expect(page.getByText('Réponse mise à jour !')).toBeVisible();
   expect(messagesEnvoyesA(adresse)).toHaveLength(2);
+  expect(messagesEnvoyesA(adresse)[1].html).toContain('James Wilson');
+  await page.goto(new URL(lien).pathname + new URL(lien).search);
+  await expect(page.getByLabel('Accompagnant 1')).toHaveValue('James Wilson');
 });
 
 test('lien de modification invalide', async ({ page }) => {
   await page.goto('/fr/rsvp/modifier?jeton=faux');
   await expect(page.getByText("Ce lien de modification n'est pas valide.")).toBeVisible();
   await expect(page.getByRole('link', { name: 'Répondre au formulaire' })).toHaveAttribute('href', '/fr/rsvp');
+});
+
+test('modification : l’e-mail ne peut pas être changé par une requête directe', async ({ page }, info) => {
+  const adresse = email(info, 'verrou');
+  const pirate = email(info, 'pirate');
+  await page.goto('/fr/rsvp');
+  await page.getByLabel('🎉 Je viens !').check();
+  await page.getByLabel('Prénom & nom').fill('Emma Wilson');
+  await page.getByLabel(/^E-mail/).fill(adresse);
+  await page.getByLabel('16 h · Accueil').check();
+  await page.getByRole('button', { name: 'Envoyer ma réponse' }).click();
+  await expect(page.getByText("C'est noté pour 1 personne")).toBeVisible();
+
+  const lien = messagesEnvoyesA(adresse)[0].html.match(/href="([^"]*\/rsvp\/modifier\?jeton=[^"]+)"/)![1].replace(/&amp;/g, '&');
+  const chemin = new URL(lien).pathname + new URL(lien).search;
+  const reponse = await page.request.post(chemin, {
+    form: { vient: 'oui', nom: 'Emma Wilson', email: pirate, moment: 'accueil' },
+    headers: { Origin: new URL(page.url()).origin },
+  });
+  expect(reponse.status()).toBe(200);
+  expect(messagesEnvoyesA(pirate)).toHaveLength(0);
+  expect(messagesEnvoyesA(adresse)).toHaveLength(2);
+});
+
+test('lien de modification absent', async ({ page }) => {
+  await page.goto('/fr/rsvp/modifier');
+  await expect(page.getByText("Ce lien de modification n'est pas valide.")).toBeVisible();
+  await expect(page.locator('form.rsvp')).toHaveCount(0);
+});
+
+test('modification : envoi direct avec un jeton inconnu', async ({ page }, info) => {
+  const adresse = email(info, 'inconnu');
+  await page.goto('/fr/rsvp');
+  const reponse = await page.request.post('/fr/rsvp/modifier?jeton=inconnu', {
+    form: { vient: 'oui', nom: 'X Y', email: adresse, moment: 'accueil' },
+    headers: { Origin: new URL(page.url()).origin },
+  });
+  expect(reponse.status()).toBe(200);
+  expect(await reponse.text()).toContain('pas valide');
+  expect(messagesEnvoyesA(adresse)).toHaveLength(0);
 });
