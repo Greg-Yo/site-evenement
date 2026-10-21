@@ -5,9 +5,11 @@ import Polaroid from '../../components/Polaroid.astro';
 import Wave from '../../components/Wave.astro';
 import { Image } from 'astro:assets';
 import { findLieu, t } from '../../lib/event';
-import { formatDate, formatHeure, ui } from '../../lib/i18n';
+import { formatDate, ui } from '../../lib/i18n';
+import { momentLabel } from '../../lib/moments';
 import { getEvent } from '../../lib/load-event';
 import { photo } from '../../lib/photos';
+import { getDb } from '../../lib/db';
 
 const lang = Astro.locals.lang;
 const ev = getEvent();
@@ -15,6 +17,8 @@ const titre = t(ev.site.titre, lang);
 const apercuMoments = ev.moments.slice(0, 3);
 const souvenirs = ev.galerie.slice(0, 5);
 const rotations = [-6, 4, -2, 7, -4];
+let extrait: { nom: string; message: string } | undefined;
+try { extrait = (await (await getDb()).messagesVisibles(1))[0]; } catch (e) { console.error('Livre d’or indisponible :', e); }
 ---
 <Base lang={lang} current="accueil">
   <section class="hero zone-orange">
@@ -55,7 +59,7 @@ const rotations = [-6, 4, -2, 7, -4];
           <li class="carte">
             {m.photo && <Image src={photo(m.photo)} alt="" width={400} height={240} class="carte-img" />}
             <div class="carte-txt">
-              <h3 class="hand">{t(m.jour, lang) && `${t(m.jour, lang)} `}{formatHeure(m.heure, lang)} · {t(m.titre, lang)}</h3>
+              <h3 class="hand">{momentLabel(m, lang)}</h3>
               <p>{t(m.description, lang)}</p>
               <p class="lieu">📍 {findLieu(ev, m.lieu).nom}</p>
             </div>
@@ -81,6 +85,9 @@ const rotations = [-6, 4, -2, 7, -4];
     <h2 class="hand">{t(ev.rsvp.titre, lang)}</h2>
     <p>{ui(lang, 'accueil.avant')} {formatDate(ev.evenement.date_limite_rsvp + 'T12:00:00+00:00', lang)}.</p>
     <a class="btn btn-clair" href={`/${lang}/rsvp`}>{ui(lang, 'accueil.confirmer')}</a>
+    {extrait && (
+      <blockquote class="extrait"><p>« {extrait.message} »</p><footer>— {extrait.nom}</footer></blockquote>
+    )}
   </section>
 </Base>
 
@@ -109,6 +116,9 @@ const rotations = [-6, 4, -2, 7, -4];
   .tu-viens { text-align: center; padding: 48px 16px; }
   .tu-viens h2 { font-size: clamp(3rem, 8vw, 3.6rem); margin: 0 0 8px; }
   .tu-viens p { margin: 0 0 24px; }
+  .extrait { margin: 32px auto 0; max-width: 520px; background: var(--c-fond); color: var(--c-texte); border-radius: 18px; padding: 18px 24px; transform: rotate(-1deg); }
+  .extrait p { font-family: var(--f-titres); font-size: 1.6rem; line-height: 1.2; margin: 0; overflow-wrap: anywhere; }
+  .extrait footer { font-size: .95rem; color: var(--c-texte-doux); margin-top: 6px; font-weight: 700; }
   @media (max-width: 760px) {
     .hero-in, .histoire { grid-template-columns: 1fr; }
     .hero-txt { text-align: center; order: 2; }

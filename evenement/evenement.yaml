@@ -1,6 +1,7 @@
 # Contenu de l'événement — voir LISEZMOI.md pour le détail de chaque champ.
 site:
   titre: { fr: "Coco a 40 ans", en: "Coco turns 40" }
+  logo: "Coco"
   url_publique: "http://localhost:4321"
   contact: { nom: "Julie", email: "contact@exemple.fr", telephone: "06 12 34 56 78" }
 

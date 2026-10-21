@@ -6,6 +6,6 @@ const { src, alt, caption, rotate = 0, tape = true, width, ratio = '4/3', class:
 ---
 <figure class={`pola ${cls}`} style={`transform:rotate(${rotate}deg);--ratio:${ratio}`}>
   {tape && <span class="tape" aria-hidden="true"></span>}
-  <Image src={src} alt={alt} width={width} widths={[width, width * 2]} sizes={`${width}px`} loading={eager ? 'eager' : 'lazy'} fetchpriority={eager ? 'high' : undefined} />
+  <Image src={src} alt={alt} width={width} widths={[width, width * 2]} sizes={`(max-width: 760px) 90vw, ${width}px`} loading={eager ? 'eager' : 'lazy'} fetchpriority={eager ? 'high' : undefined} />
   {caption && <figcaption>{caption}</figcaption>}
 </figure>

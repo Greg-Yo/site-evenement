@@ -12,7 +12,7 @@ Tout le site est rempli à partir de **`evenement.yaml`** et des photos du dossi
 ## Rubriques
 | Rubrique | Contenu |
 |---|---|
-| `site` | Titre du site, adresse publique (sert au QR code et aux e-mails), contact |
+| `site` | Titre du site, logo (facultatif, court ; à défaut, le titre complet), adresse publique (sert au QR code et aux e-mails), contact |
 | `theme` | Facultatif. Couleurs (`principale`, `fond`, `texte`, `douce`) au format `#rrggbb`, polices Google Fonts (`titres`, `texte`) |
 | `evenement` | Date et heure de début avec fuseau (`2027-06-14T16:00:00+02:00`), date limite de réponse (`2027-05-01`), lieu en quelques mots |
 | `accueil` | Accroche, photo principale, photo secondaire (facultative), légende |
@@ -23,6 +23,11 @@ Tout le site est rempli à partir de **`evenement.yaml`** et des photos du dossi
 | `infos` | Tout est facultatif : `hebergements`, `tenue`, `cadeaux`, `acces`, `faq`. Une rubrique absente n'est pas affichée. |
 | `rsvp` | Titre de la page de réponse, message de remerciement |
 | `email` | Nom de l'expéditeur, objet de l'e-mail |
+
+## Invitation PDF et e-mails
+- La photo principale (`accueil.photo_principale`) figure sur l'invitation PDF.
+- Les e-mails utilisent `email.expediteur_nom` et `email.objet`.
+- Les liens des e-mails et le QR code reposent sur `site.url_publique`, à remplacer par l'adresse du site en ligne.
 
 ## Crédits des photos d'exemple
 Photos libres de droits issues d'Unsplash (licence Unsplash). Remplace-les par les tiennes.

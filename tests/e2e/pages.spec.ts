@@ -60,6 +60,16 @@ test.describe('Notre histoire', () => {
     await page.keyboard.press('Escape');
     await expect(dlg).toBeHidden();
   });
+
+  test('la visionneuse rend le focus à la photo qui l’a ouverte', async ({ page }) => {
+    await page.goto('/fr/histoire');
+    const premier = page.locator('a[data-lightbox]').first();
+    await premier.click();
+    await page.keyboard.press('ArrowRight');
+    await page.keyboard.press('ArrowRight');
+    await page.keyboard.press('Escape');
+    await expect(premier).toBeFocused();
+  });
 });
 
 test.describe('Programme & lieux', () => {

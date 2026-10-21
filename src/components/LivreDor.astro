@@ -1,0 +1,25 @@
+---
+import type { Lang } from '../lib/event';
+import { ui } from '../lib/i18n';
+interface Props { lang: Lang; messages: { nom: string; message: string }[] }
+const { lang, messages } = Astro.props;
+---
+<section class="livre" aria-labelledby="titre-livre">
+  <h2 id="titre-livre" class="titre-section">{ui(lang, 'livre.titre')}</h2>
+  {messages.length === 0 && <p class="vide">{ui(lang, 'livre.vide')}</p>}
+  <ul>
+    {messages.map((m) => (
+      <li><blockquote><p>« {m.message} »</p><footer>{m.nom}</footer></blockquote></li>
+    ))}
+  </ul>
+</section>
+<style>
+  ul { list-style: none; padding: 0; margin: 0; }
+  li { background: #fff; border-radius: 16px; padding: 16px 18px; margin-bottom: 14px; box-shadow: 0 6px 14px rgba(58,36,25,.1); position: relative; }
+  li:nth-child(odd) { transform: rotate(-1deg); } li:nth-child(even) { transform: rotate(1deg); }
+  li::before { content: ''; position: absolute; top: -8px; right: 20px; width: 16px; height: 16px; border-radius: 50%; background: var(--c-principale-fonce); }
+  blockquote { margin: 0; }
+  blockquote p { font-family: var(--f-titres); font-size: 1.5rem; line-height: 1.2; margin: 0 0 8px; overflow-wrap: anywhere; }
+  footer { color: var(--c-texte-doux); font-weight: 700; }
+  .vide { color: var(--c-texte-doux); }
+</style>

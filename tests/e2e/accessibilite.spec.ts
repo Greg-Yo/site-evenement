@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 
-const PAGES = ['/fr/', '/en/', '/fr/histoire', '/fr/programme', '/fr/infos'];
+const PAGES = ['/fr/', '/en/', '/fr/histoire', '/fr/programme', '/fr/infos', '/fr/rsvp', '/en/rsvp', '/fr/rsvp/modifier?jeton=faux'];
 
 for (const url of PAGES) {
   test(`${url} : aucune violation WCAG AA`, async ({ page }) => {
@@ -31,5 +31,5 @@ test('menu téléphone : s’ouvre au clic', async ({ page }) => {
 
 test('pied de page : espace avant le courriel', async ({ page }) => {
   await page.goto('/fr/');
-  await expect(page.locator('footer')).toContainText('Une question ? contact@exemple.fr');
+  await expect(page.getByRole('contentinfo')).toContainText('Une question ? contact@exemple.fr');
 });
