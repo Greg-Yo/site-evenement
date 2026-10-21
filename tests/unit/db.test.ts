@@ -47,4 +47,28 @@ describe('réponses', () => {
     expect((await db.messagesVisibles(10)).map((m) => m.nom)).toEqual(['Emma', 'Camille Martin']);
     expect(await db.messagesVisibles(1)).toHaveLength(1);
   });
+
+  test('toutes, parId, supprimer', async () => {
+    const a = await db.ajouter({ ...camille, email: 'a@x.fr' }, new Date('2027-01-01T10:00:00Z'));
+    const b = await db.ajouter({ ...camille, email: 'b@x.fr' }, new Date('2027-01-02T10:00:00Z'));
+    expect((await db.toutes()).map((r) => r.email)).toEqual(['b@x.fr', 'a@x.fr']);
+    expect((await db.parId(a.id))?.email).toBe('a@x.fr');
+    expect(await db.supprimer(a.id)).toBe(true);
+    expect(await db.supprimer(a.id)).toBe(false);
+    expect(await db.parId(a.id)).toBeNull();
+    expect(b.id).toBeGreaterThan(0);
+  });
+
+  test('modération des messages', async () => {
+    const r = await db.ajouter({ ...camille, message: 'Bravo' }, new Date());
+    expect(await db.masquerMessage(r.id, true)).toBe(true);
+    expect(await db.messagesVisibles(10)).toEqual([]);
+    expect((await db.messages())[0]).toMatchObject({ id: r.id, message: 'Bravo', masque: true });
+    await db.masquerMessage(r.id, false);
+    expect(await db.messagesVisibles(10)).toHaveLength(1);
+    expect(await db.supprimerMessage(r.id)).toBe(true);
+    expect(await db.messages()).toEqual([]);
+    expect((await db.parId(r.id))?.nom).toBe(camille.nom);
+    expect(await db.masquerMessage(9999, true)).toBe(false);
+  });
 });

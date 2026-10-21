@@ -10,6 +10,8 @@ export type Reponse = {
 };
 export type NouvelleReponse = Pick<Reponse, 'langue' | 'vient' | 'nom' | 'email' | 'telephone' | 'accompagnants' | 'moments' | 'message'>;
 
+export type MessageAdmin = { id: number; nom: string; message: string; masque: boolean; creeLe: string };
+
 export class ErreurDoublon extends Error {
   constructor() { super('Une réponse existe déjà pour cette adresse e-mail'); this.name = 'ErreurDoublon'; }
 }
@@ -98,6 +100,40 @@ export class Db {
       args: [limite],
     });
     return res.rows.map((r) => ({ nom: String(r.nom), message: String(r.message), creeLe: String(r.cree_le) }));
+  }
+
+  async toutes(): Promise<Reponse[]> {
+    const res = await this.client.execute('SELECT * FROM reponses ORDER BY cree_le DESC, id DESC');
+    return res.rows.map(versReponse);
+  }
+
+  async parId(id: number): Promise<Reponse | null> {
+    const res = await this.client.execute({ sql: 'SELECT * FROM reponses WHERE id = ?', args: [id] });
+    return res.rows[0] ? versReponse(res.rows[0]) : null;
+  }
+
+  async supprimer(id: number): Promise<boolean> {
+    const res = await this.client.execute({ sql: 'DELETE FROM reponses WHERE id = ?', args: [id] });
+    return res.rowsAffected > 0;
+  }
+
+  async masquerMessage(id: number, masque: boolean): Promise<boolean> {
+    const res = await this.client.execute({ sql: 'UPDATE reponses SET message_masque = ? WHERE id = ?', args: [masque ? 1 : 0, id] });
+    return res.rowsAffected > 0;
+  }
+
+  async supprimerMessage(id: number): Promise<boolean> {
+    const res = await this.client.execute({ sql: 'UPDATE reponses SET message = NULL, message_masque = 0 WHERE id = ?', args: [id] });
+    return res.rowsAffected > 0;
+  }
+
+  async messages(): Promise<MessageAdmin[]> {
+    const res = await this.client.execute(
+      `SELECT id, nom, message, message_masque, cree_le FROM reponses
+       WHERE message IS NOT NULL AND message <> '' ORDER BY cree_le DESC, id DESC`);
+    return res.rows.map((r) => ({
+      id: Number(r.id), nom: String(r.nom), message: String(r.message), masque: Number(r.message_masque) === 1, creeLe: String(r.cree_le),
+    }));
   }
 
   async ajouterTentative(cle: string, maintenant: Date): Promise<void> {
