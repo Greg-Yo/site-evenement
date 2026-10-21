@@ -51,7 +51,7 @@ function bouton(href: string, libelle: string, c: ReturnType<typeof couleurs>, p
 
 function gabarit(ev: EventConfig, lang: Lang, titre: string, corps: string): string {
   const c = couleurs(ev);
-  return `<!doctype html><html><body style="margin:0;background:#f4efe8;font-family:Arial,Helvetica,sans-serif;color:${c.texte}">
+  return `<!doctype html><html lang="${lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${echapper(t(ev.site.titre, lang))}</title></head><body style="margin:0;background:#f4efe8;font-family:Arial,Helvetica,sans-serif;color:${c.texte}">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4efe8;padding:24px 0"><tr><td align="center">
 <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:${c.fond};border-radius:16px;overflow:hidden">
 <tr><td style="background:${c.principale};color:#ffffff;text-align:center;padding:24px 16px">

@@ -4,7 +4,7 @@ import { openDb, type Db } from '../../src/lib/db';
 import { parseEvent } from '../../src/lib/event';
 import type { Expediteur, Message } from '../../src/lib/mail/types';
 import { CHAMPS_VIDES, type ChampsRsvp } from '../../src/lib/rsvp';
-import { modifier, nomFichierInvitation, soumettre, type Deps } from '../../src/lib/rsvp-service';
+import { limiteDepuisEnv, modifier, nomFichierInvitation, soumettre, type Deps } from '../../src/lib/rsvp-service';
 
 const ev = parseEvent(readFileSync('evenement/evenement.yaml', 'utf8'), readdirSync('evenement/photos').map((f) => `photos/${f}`));
 const champs: ChampsRsvp = { ...CHAMPS_VIDES, vient: true, nom: 'Camille Martin', email: 'camille@exemple.fr', moments: ['diner'], message: 'Bravo' };
@@ -42,10 +42,27 @@ describe('soumettre', () => {
   test('doublon (casse et espaces différents) : rien n’est modifié, le lien est renvoyé', async () => {
     await soumettre(champs, 'fr', '1.1.1.1', deps);
     const r = await soumettre({ ...champs, email: '  Camille@Exemple.FR ', nom: 'Autre Nom', vient: false, moments: [] }, 'fr', '1.1.1.1', deps);
-    expect(r).toEqual({ type: 'doublon' });
+    expect(r).toEqual({ type: 'doublon', lienEnvoye: true });
     expect((await db.parEmail('CAMILLE@EXEMPLE.FR'))?.nom).toBe('Camille Martin');
     expect(envoyes).toHaveLength(2);
     expect(envoyes[1].sujet).toContain('modifier');
+  });
+
+  test('deux doublons en moins de 10 minutes : un seul e-mail de lien', async () => {
+    await soumettre(champs, 'fr', '1.1.1.1', deps);
+    const a = await soumettre(champs, 'fr', '1.1.1.1', deps);
+    const b = await soumettre(champs, 'fr', '1.1.1.1', deps);
+    expect(a).toEqual({ type: 'doublon', lienEnvoye: true });
+    expect(b).toEqual({ type: 'doublon', lienEnvoye: false });
+    expect(envoyes).toHaveLength(2);
+  });
+
+  test('échec d’envoi du lien : lienEnvoye est false', async () => {
+    await soumettre(champs, 'fr', '1.1.1.1', deps);
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const cassee: Deps = { ...deps, expediteur: { envoyer: async () => { throw new Error('panne'); } } };
+    expect(await soumettre(champs, 'fr', '1.1.1.1', cassee)).toEqual({ type: 'doublon', lienEnvoye: false });
+    vi.restoreAllMocks();
   });
 
   test('après la date limite : fermé, rien d’enregistré', async () => {
@@ -98,4 +115,10 @@ describe('modifier', () => {
 test('nomFichierInvitation', () => {
   expect(nomFichierInvitation('Camille Martin')).toBe('Invitation-Camille-Martin.pdf');
   expect(nomFichierInvitation('Zoë / <Léa>')).toBe('Invitation-Zoe-Lea.pdf');
+});
+
+describe('limiteDepuisEnv', () => {
+  test.each([[undefined, 5], ['10', 10], ['cinq', 5], ['0', 5], ['-3', 5], ['2.5', 5]])('%s -> %s', (v, attendu) => {
+    expect(limiteDepuisEnv(v)).toBe(attendu);
+  });
 });

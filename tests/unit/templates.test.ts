@@ -31,6 +31,11 @@ describe('confirmation', () => {
     expect(m.texte).toContain('2 personnes');
     expect(m.texte).toContain(liens.modifier);
   });
+  test('en-tête HTML : charset et langue', () => {
+    expect(m.html).toContain('<meta charset="utf-8">');
+    expect(m.html).toContain('lang="fr"');
+    expect(emailConfirmation(ev, { ...r, langue: 'en' }, liens).html).toContain('lang="en"');
+  });
   test('version anglaise', () => {
     const en = emailConfirmation(ev, { ...r, langue: 'en' }, liens);
     expect(en.sujet).toBe("🎉 Your invitation to Coco's 40th");

@@ -40,7 +40,7 @@ const err = (k: keyof ErreursRsvp) => (erreurs[k] ? ui(lang, erreurs[k]!) : '');
   {erreurs.email && <p class="err" id="err-email">{err('email')}</p>}
 
   <div class="si-vient">
-    <fieldset>
+    <fieldset aria-describedby={erreurs.accompagnants ? 'err-accompagnants' : undefined}>
       <legend>{ui(lang, 'rsvp.accompagnants')}</legend>
       <ul class="accompagnants">
         {acc.map((a, i) => (
@@ -52,7 +52,7 @@ const err = (k: keyof ErreursRsvp) => (erreurs[k] ? ui(lang, erreurs[k]!) : '');
         ))}
       </ul>
       <button type="button" class="ajouter" hidden>{ui(lang, 'rsvp.ajouter')}</button>
-      {erreurs.accompagnants && <p class="err">{err('accompagnants')}</p>}
+      {erreurs.accompagnants && <p class="err" id="err-accompagnants">{err('accompagnants')}</p>}
     </fieldset>
 
     <fieldset class="moments" aria-describedby={erreurs.moments ? 'err-moments' : undefined}>
@@ -65,8 +65,8 @@ const err = (k: keyof ErreursRsvp) => (erreurs[k] ? ui(lang, erreurs[k]!) : '');
   </div>
 
   <label for="message">{ui(lang, 'rsvp.message')}{' '}<small>{ui(lang, 'rsvp.message_aide')}</small></label>
-  <textarea id="message" name="message" maxlength="1000" aria-invalid={erreurs.message ? 'true' : undefined}>{champs.message}</textarea>
-  {erreurs.message && <p class="err">{err('message')}</p>}
+  <textarea id="message" name="message" maxlength="1000" aria-invalid={erreurs.message ? 'true' : undefined} aria-describedby={erreurs.message ? 'err-message' : undefined}>{champs.message}</textarea>
+  {erreurs.message && <p class="err" id="err-message">{err('message')}</p>}
 
   <button class="btn btn-plein envoyer" type="submit">{libelleEnvoyer}</button>
   <p class="note">{ui(lang, 'rsvp.note')}</p>

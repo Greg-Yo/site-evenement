@@ -13,6 +13,11 @@ export function monterFormulaire(root: ParentNode = document): void {
   form.querySelectorAll('input[name=vient]').forEach((r) => r.addEventListener('change', majPresence));
   majPresence();
 
+  // Évite le double envoi (double clic) : le bouton est désactivé une fois la validation du navigateur passée.
+  form.addEventListener('submit', () => {
+    form.querySelector<HTMLButtonElement>('button[type=submit]')!.disabled = true;
+  });
+
   // Avec JS : on ne garde visibles que les lignes remplies (au moins une), et on montre les boutons.
   const lignes = () => Array.from(liste.querySelectorAll('li'));
   const renumeroter = () => lignes().filter((li) => !li.hidden).forEach((li, i) => {

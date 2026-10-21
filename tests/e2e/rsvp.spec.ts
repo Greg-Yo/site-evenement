@@ -174,3 +174,29 @@ test('modification : envoi direct avec un jeton inconnu', async ({ page }, info)
   expect(await reponse.text()).toContain('pas valide');
   expect(messagesEnvoyesA(adresse)).toHaveLength(0);
 });
+
+test('double clic sur envoyer : une seule réponse, un seul e-mail', async ({ page }, info) => {
+  const adresse = email(info, 'dblclic');
+  await page.goto('/fr/rsvp');
+  await page.getByLabel('🎉 Je viens !').check();
+  await page.getByLabel('Prénom & nom').fill('Alix Dupont');
+  await page.getByLabel(/^E-mail/).fill(adresse);
+  await page.getByLabel('16 h · Accueil').check();
+  await page.getByRole('button', { name: 'Envoyer ma réponse' }).dblclick();
+  await expect(page.getByRole('heading', { name: /Merci Alix/ })).toBeVisible();
+  await expect(page.getByText('déjà répondu')).toHaveCount(0);
+  expect(messagesEnvoyesA(adresse)).toHaveLength(1);
+});
+
+test('envoi qui n’est pas un formulaire : pas d’erreur serveur', async ({ page }) => {
+  await page.goto('/fr/rsvp');
+  const origin = new URL(page.url()).origin;
+  const a = await page.request.post('/fr/rsvp', { data: 'x', headers: { 'content-type': 'text/plain', Origin: origin } });
+  expect(a.status()).toBe(200);
+});
+
+test('page de modification : pas de référent, non indexée', async ({ page }) => {
+  await page.goto('/fr/rsvp/modifier');
+  await expect(page.locator('meta[name=referrer]')).toHaveAttribute('content', 'no-referrer');
+  await expect(page.locator('meta[name=robots]')).toHaveAttribute('content', 'noindex');
+});

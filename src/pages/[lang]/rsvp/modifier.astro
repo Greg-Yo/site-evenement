@@ -17,12 +17,20 @@ let champs: ChampsRsvp = existante
   : CHAMPS_VIDES;
 let resultat: Resultat | null = null;
 if (existante && Astro.request.method === 'POST') {
-  champs = { ...lireFormulaire(await Astro.request.formData()), email: existante.email, piege: '' };
+  let envoye: ChampsRsvp = CHAMPS_VIDES;
+  try {
+    envoye = lireFormulaire(await Astro.request.formData());
+  } catch { /* corps illisible : la validation renverra « invalide » */ }
+  champs = { ...envoye, email: existante.email, piege: '' };
   resultat = await modifier(jeton, champs, lang, deps);
 }
 const ouvert = rsvpOuvert(deps.ev.evenement, deps.maintenant());
 ---
 <Base lang={lang} current="rsvp" title={ui(lang, 'modif.titre')}>
+  <Fragment slot="head">
+    <meta name="referrer" content="no-referrer" />
+    <meta name="robots" content="noindex" />
+  </Fragment>
   <PageHead title={ui(lang, 'modif.titre')} />
   <div class="container etroit">
     {!existante && (

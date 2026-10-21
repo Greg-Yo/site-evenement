@@ -59,6 +59,7 @@ function dateLocale(maintenant: Date, isoReference: string): string {
   return new Date(maintenant.getTime() + minutes * 60_000).toISOString().slice(0, 10);
 }
 
+// Le décalage horaire de date_debut sert pour toute la période : un changement d'heure entre la date limite et l'événement décale la clôture d'une heure.
 export function rsvpOuvert(evenement: EventConfig['evenement'], maintenant: Date): boolean {
   return dateLocale(maintenant, evenement.date_debut) <= evenement.date_limite_rsvp;
 }

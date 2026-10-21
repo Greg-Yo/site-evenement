@@ -11,10 +11,16 @@ export type Deps = {
 };
 export type Resultat =
   | { type: 'ok'; reponse: Reponse; emailEnvoye: boolean }
-  | { type: 'doublon' } | { type: 'ferme' } | { type: 'limite' } | { type: 'ignore' } | { type: 'introuvable' }
+  | { type: 'doublon'; lienEnvoye: boolean } | { type: 'ferme' } | { type: 'limite' } | { type: 'ignore' } | { type: 'introuvable' }
   | { type: 'invalide'; erreurs: ErreursRsvp };
 
 const FENETRE = 10 * 60 * 1000;
+
+/** Limite d'envois par IP depuis la variable d'environnement : entier strictement positif, sinon 5. */
+export function limiteDepuisEnv(valeur: string | undefined): number {
+  const n = Number(valeur);
+  return Number.isInteger(n) && n > 0 ? n : 5;
+}
 
 export function liens(r: Reponse, urlBase: string): Liens {
   return {
@@ -47,13 +53,17 @@ async function envoyerConfirmation(r: Reponse, deps: Deps): Promise<boolean> {
   }
 }
 
-async function renvoyerLien(email: string, deps: Deps): Promise<void> {
+/** Renvoie true seulement si l'e-mail a réellement été envoyé (pas de renvoi si limité : protège le quota d'e-mails). */
+async function renvoyerLien(email: string, deps: Deps): Promise<boolean> {
   const r = await deps.db.parEmail(email);
-  if (!r) return;
+  if (!r) return false;
+  if (await depasseLimite(deps.db, 'lien:' + email, 1, 10 * 60 * 1000, deps.maintenant())) return false;
   try {
     await deps.expediteur.envoyer({ a: r.email, ...emailLienModification(deps.ev, r, liens(r, deps.urlBase)) });
+    return true;
   } catch (e) {
     console.error('Envoi du lien de modification impossible :', e);
+    return false;
   }
 }
 
@@ -69,8 +79,7 @@ export async function soumettre(champs: ChampsRsvp, langue: Lang, ip: string, de
     reponse = await deps.db.ajouter(v.data, maintenant);
   } catch (e) {
     if (!(e instanceof ErreurDoublon)) throw e;
-    await renvoyerLien(v.data.email, deps);
-    return { type: 'doublon' };
+    return { type: 'doublon', lienEnvoye: await renvoyerLien(v.data.email, deps) };
   }
   return { type: 'ok', reponse, emailEnvoye: await envoyerConfirmation(reponse, deps) };
 }

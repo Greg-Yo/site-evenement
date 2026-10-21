@@ -110,6 +110,7 @@ const DICT = {
   'rsvp.regrets': { fr: 'Dommage ! Merci de nous avoir prévenus.', en: 'What a shame! Thanks for letting us know.' },
   'rsvp.indesirables': { fr: 'Pense à vérifier tes courriers indésirables.', en: 'Remember to check your spam folder.' },
   'rsvp.email_plus_tard': { fr: "Réponse enregistrée : l'e-mail arrivera un peu plus tard.", en: 'Reply saved: the email will arrive a little later.' },
+  'rsvp.doublon_sans_lien': { fr: 'Tu as déjà répondu avec cette adresse. Utilise le lien reçu par e-mail pour modifier ta réponse.', en: 'You have already replied with this address. Use the link in your email to change your reply.' },
   'rsvp.doublon': { fr: "Tu as déjà répondu avec cette adresse : on vient de t'envoyer le lien pour modifier ta réponse.", en: 'You have already replied with this address: we just sent you the link to change your reply.' },
   'rsvp.ferme': { fr: 'Les réponses sont closes. Merci !', en: 'Replies are now closed. Thank you!' },
   'rsvp.limite': { fr: "Trop d'envois en peu de temps. Réessaie dans quelques minutes.", en: 'Too many attempts. Please try again in a few minutes.' },
