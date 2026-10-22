@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { filtrer, lireFiltres, statistiques } from '../../src/lib/admin/reponses';
+import { abreviations, filtrer, lireFiltres, statistiques } from '../../src/lib/admin/reponses';
 import { rep } from './fabriques';
 
 const liste = [
@@ -24,5 +24,12 @@ describe('admin : réponses', () => {
     expect(filtrer(liste, { q: 'paul@', presence: 'tous', moment: '' })).toHaveLength(1);
     expect(filtrer(liste, { q: '', presence: 'non', moment: '' }).map((r) => r.nom)).toEqual(['Paul Leroy']);
     expect(filtrer(liste, { q: '', presence: 'tous', moment: 'accueil' }).map((r) => r.nom)).toEqual(['Émilie Durand']);
+  });
+  test('abreviations : uniques, allongées si besoin', () => {
+    const m = [{ id: 'a', titre: 'Accueil' }, { id: 'd', titre: 'Dîner' }, { id: 's', titre: 'Soirée' }, { id: 'b', titre: 'Brunch' }];
+    expect(abreviations(m, 1)).toEqual({ a: 'A', d: 'D', s: 'S', b: 'B' });
+    expect(abreviations(m, 3)).toEqual({ a: 'Acc', d: 'Dîn', s: 'Soi', b: 'Bru' });
+    expect(abreviations([{ id: 'x', titre: 'Soirée' }, { id: 'y', titre: 'Soupe' }], 1)).toEqual({ x: 'Soi', y: 'Sou' });
+    expect(abreviations([{ id: 'x', titre: 'Dîner' }, { id: 'y', titre: 'Dîner' }], 1)).toEqual({ x: 'Dîner 1', y: 'Dîner 2' });
   });
 });

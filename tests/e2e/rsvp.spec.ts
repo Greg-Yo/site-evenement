@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
+import { email } from './admin';
 import { messagesEnvoyesA } from './outbox';
 
-const email = (info: { project: { name: string } }, tag: string) => `${tag}-${info.project.name}-${Date.now()}@exemple.fr`;
 
 test('confirmation complète : merci, e-mail avec PDF, message dans le livre d’or', async ({ page }, info) => {
   const adresse = email(info, 'oui');

@@ -1,6 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { connecter } from './admin';
+import { readFileSync } from 'node:fs';
+import { connecter, email, repondre } from './admin';
 
 test('sans session : /admin redirige vers la connexion', async ({ page }) => {
   await page.goto('/admin');
@@ -42,6 +43,42 @@ test('requête depuis un autre site refusée (CSRF)', async ({ page }) => {
   expect(rep.status()).toBe(403);
   await page.goto('/admin');
   await expect(page.getByRole('heading', { level: 1, name: /Réponses/ })).toBeVisible();
+});
+
+test('tableau : compteurs, recherche, filtre de présence, export CSV', async ({ page }, info) => {
+  const oui = email(info, 'adm-oui');
+  const non = email(info, 'adm-non');
+  await page.goto('/fr/rsvp');
+  await repondre(page, { vient: 'oui', nom: 'Iris Admin', email: oui, moment: ['diner'] });
+  await repondre(page, { vient: 'non', nom: 'Noé Admin', email: non });
+  await connecter(page);
+  await expect(page.getByText('Personnes attendues')).toBeVisible();
+  await page.getByLabel('Rechercher un nom ou un e-mail').fill(oui);
+  await page.getByRole('button', { name: 'Filtrer' }).click();
+  await expect(page.getByRole('row')).toHaveCount(2);
+  await expect(page.getByRole('row').nth(1)).toContainText('Iris Admin');
+  await page.getByLabel('Rechercher un nom ou un e-mail').fill(non);
+  await page.getByLabel('Présence').selectOption('oui');
+  await page.getByRole('button', { name: 'Filtrer' }).click();
+  await expect(page.getByText('Aucune réponse ne correspond à ces filtres.')).toBeVisible();
+  const [telechargement] = await Promise.all([page.waitForEvent('download'), page.getByRole('link', { name: /Export CSV/ }).click()]);
+  const contenu = readFileSync(await telechargement.path(), 'utf8');
+  expect(contenu.charCodeAt(0)).toBe(0xfeff);
+  expect(contenu).toContain(`Iris Admin;${oui};`);
+});
+
+test('export CSV sans session : 401', async ({ playwright }) => {
+  const ctx = await playwright.request.newContext({ baseURL: 'http://localhost:4322' });
+  expect((await ctx.get('/api/admin/export.csv')).status()).toBe(401);
+});
+
+test('pas de défilement horizontal de la page à 360 px', async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await connecter(page);
+  for (const url of ['/admin']) {
+    await page.goto(url);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
+  }
 });
 
 const violations = async (page: Page) => {

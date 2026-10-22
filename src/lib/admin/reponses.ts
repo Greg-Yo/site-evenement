@@ -42,3 +42,25 @@ export function filtrer(reponses: Reponse[], f: Filtres): Reponse[] {
     return true;
   });
 }
+
+/** Abréviations uniques des titres : allongées tant qu'elles se confondent, numérotées si les titres sont identiques. */
+export function abreviations(moments: { id: string; titre: string }[], longueurMin: number): Record<string, string> {
+  const titres = moments.map((m) => Array.from(m.titre));
+  const longueurs = moments.map(() => longueurMin);
+  const abr = (i: number) => titres[i].slice(0, longueurs[i]).join('');
+  const conflits = () => {
+    const parAbr = new Map<string, number[]>();
+    moments.forEach((_, i) => parAbr.set(abr(i), [...(parAbr.get(abr(i)) ?? []), i]));
+    return [...parAbr.values()].filter((g) => g.length > 1);
+  };
+  for (let allonge = true; allonge; ) {
+    allonge = false;
+    for (const i of conflits().flat()) {
+      if (longueurs[i] < titres[i].length) { longueurs[i]++; allonge = true; }
+    }
+  }
+  const res: Record<string, string> = Object.fromEntries(moments.map((m, i) => [m.id, abr(i)]));
+  // Titres identiques en entier : seule la numérotation les distingue.
+  for (const g of conflits()) g.forEach((i, n) => { res[moments[i].id] = `${abr(i)} ${n + 1}`; });
+  return res;
+}
