@@ -1,0 +1,53 @@
+---
+import Admin from '../../layouts/Admin.astro';
+import { outboxActive } from '../../lib/mail/index';
+import { listerOutbox } from '../../lib/mail/lire-outbox';
+import { horodatageLocal } from '../../lib/rsvp';
+import { getDeps } from '../../lib/services';
+
+const active = outboxActive();
+if (!active) Astro.response.status = 404;
+const deps = await getDeps();
+const messages = active ? listerOutbox(process.env.OUTBOX_DIR || '.data/outbox') : [];
+// JJ/MM HH:MM, dans le fuseau de l'événement.
+const quand = (iso: string) => { const h = horodatageLocal(iso, deps.ev.evenement.date_debut); return `${h.slice(0, 5)} ${h.slice(-5)}`; };
+const chemin = (d: string, f: string) => `/api/admin/outbox/${encodeURIComponent(d)}/${encodeURIComponent(f)}`;
+---
+<Admin titre="Boîte d’envoi (test)" actif="outbox">
+  <h1>Boîte d’envoi (test)</h1>
+  {!active ? (
+    <p class="vide">La boîte d'envoi de test n'existe qu'en local (MAIL_MODE=outbox).</p>
+  ) : messages.length === 0 ? (
+    <p class="vide">Aucun e-mail pour l'instant.</p>
+  ) : (
+    <div class="defilement" tabindex="0" role="region" aria-label="Tableau des e-mails de test">
+      <table>
+        <thead>
+          <tr><th scope="col">Date</th><th scope="col">Destinataire</th><th scope="col">Objet</th><th scope="col">Fichiers</th></tr>
+        </thead>
+        <tbody>
+          {messages.map((m) => (
+            <tr>
+              <td>{quand(m.date)}</td>
+              <td>{m.a}</td>
+              <td>{m.sujet}</td>
+              <td class="fichiers">
+                <a href={chemin(m.dossier, 'message.html')} target="_blank" rel="noopener">Voir l’e-mail</a>
+                {m.piecesJointes.map((p) => <a href={chemin(m.dossier, p)} target="_blank" rel="noopener">{p}</a>)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )}
+</Admin>
+<style>
+  h1 { margin: 0 0 16px; font-size: 1.6rem; }
+  .vide { background: #fff; border-radius: 14px; padding: 18px; text-align: center; margin: 0; }
+  .defilement { overflow-x: auto; border-radius: 14px; box-shadow: 0 3px 10px rgba(58,36,25,.07); }
+  table { width: 100%; border-collapse: collapse; background: #fff; font-size: .85rem; }
+  th { text-align: left; background: #f5ebe2; padding: 10px 12px; font-size: .75rem; text-transform: uppercase; letter-spacing: .04em; white-space: nowrap; }
+  td { padding: 10px 12px; border-top: 1px solid #eadfd5; vertical-align: top; }
+  .fichiers a { display: block; color: var(--c-principale-fonce); font-weight: 700; overflow-wrap: anywhere; }
+</style>

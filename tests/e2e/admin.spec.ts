@@ -131,7 +131,7 @@ test('action sur une réponse inexistante : message, pas d’erreur 500', async 
 test('pas de défilement horizontal de la page à 360 px', async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await connecter(page);
-  for (const url of ['/admin', '/admin/livre-dor']) {
+  for (const url of ['/admin', '/admin/livre-dor', '/admin/outbox']) {
     await page.goto(url);
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
   }
@@ -179,4 +179,20 @@ test('livre d’or : masquer, réafficher, supprimer (la réponse reste)', async
   await expect(page.getByText(texte)).toHaveCount(0);
   await page.goto(`/admin?q=${encodeURIComponent(adr)}`);
   await expect(page.getByRole('row').nth(1)).toContainText('Lou Livre');
+});
+
+test('boîte d’envoi de test : liste et lecture d’un e-mail', async ({ page }, info) => {
+  const adr = email(info, 'adm-outbox');
+  await page.goto('/fr/rsvp');
+  await repondre(page, { vient: 'oui', nom: 'Max Outbox', email: adr, moment: ['diner'] });
+  await connecter(page);
+  await page.getByRole('link', { name: 'Boîte d’envoi (test)' }).click();
+  const ligne = page.getByRole('row').filter({ hasText: adr });
+  await expect(ligne).toHaveCount(1);
+  const href = await ligne.getByRole('link', { name: 'Voir l’e-mail' }).getAttribute('href');
+  const rep = await page.request.get(href!);
+  expect(rep.headers()['content-type']).toContain('text/html');
+  expect(rep.headers()['content-security-policy']).toContain('sandbox');
+  expect(await rep.text()).toContain('Max');
+  expect((await page.request.get('/api/admin/outbox/..%2F/message.html')).status()).toBe(404);
 });
