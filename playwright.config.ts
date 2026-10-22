@@ -21,6 +21,7 @@ export default defineConfig({
       HOST: '127.0.0.1', PORT: String(PORT),
       DATABASE_URL: 'file:.data/test.db', OUTBOX_DIR: '.data/test-outbox', MAIL_MODE: 'outbox', RSVP_LIMITE: '1000',
       MAINTENANT_TEST: '2027-01-15T12:00:00+01:00',
+      ADMIN_PASSWORD: 'mot-de-passe-de-test', SESSION_SECRET: 'secret-de-session-pour-les-tests-0123456789',
     },
   },
   projects: [
