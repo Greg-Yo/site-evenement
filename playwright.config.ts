@@ -6,6 +6,8 @@ export default defineConfig({
   testDir: 'tests/e2e',
   // Un seul worker : sur une machine à 4 cœurs, la conversion des images (sharp, /_image) sous charge parallèle dépassait les délais.
   workers: 1,
+  // Une relance locale absorbe les rares délais dépassés dus à la conversion des images à la demande ; en CI, aucune.
+  retries: process.env.CI ? 0 : 1,
   use: {
     baseURL: `http://127.0.0.1:${PORT}`,
     // Les ressources tierces (polices Google, tuiles OpenStreetMap) ne sont pas ce que l'on teste : leur lenteur ou leur
