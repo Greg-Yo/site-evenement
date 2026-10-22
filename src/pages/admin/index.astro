@@ -34,6 +34,7 @@ const recuLe = (r: Reponse) => horodatageLocal(r.creeLe, ev.evenement.date_debut
     <div class="boutons">
       <a class="btn btn-contour btn-petit" href="/api/admin/export.csv"><span aria-hidden="true">⬇</span>{' '}Export CSV / Excel</a>
       <a class="btn btn-contour btn-petit" href="/api/admin/liste.pdf"><span aria-hidden="true">🖨</span>{' '}PDF liste des confirmés</a>
+      <a class="btn btn-contour btn-petit" href="/api/admin/invitations.pdf"><span aria-hidden="true">📄</span>{' '}Toutes les invitations (PDF)</a>
     </div>
   </div>
   {flash && <p class={`flash ${flash.type}`} role={flash.type === 'ok' ? 'status' : 'alert'}>{flash.texte}</p>}

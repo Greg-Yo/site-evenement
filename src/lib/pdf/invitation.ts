@@ -1,17 +1,17 @@
 import fontkit from '@pdf-lib/fontkit';
-import { PDFDocument, rgb, type PDFFont, type PDFPage } from 'pdf-lib';
+import { PDFDocument, rgb, type PDFFont, type PDFImage, type PDFPage } from 'pdf-lib';
 import QRCode from 'qrcode';
 import type { Reponse } from '../db';
-import { findLieu, t, type EventConfig } from '../event';
+import { findLieu, t, type EventConfig, type Lang } from '../event';
 import { formatDate } from '../i18n';
 import { momentLabel } from '../moments';
 import { couleursTheme } from '../theme';
 
 export type Polices = { titre: Uint8Array; texte: Uint8Array; texteGras: Uint8Array };
-type Donnees = {
-  ev: EventConfig; reponse: Pick<Reponse, 'nom' | 'accompagnants' | 'moments' | 'langue'>;
-  photo: Uint8Array | null; polices: Polices; urlQr: string;
-};
+type ReponseInvitation = Pick<Reponse, 'nom' | 'accompagnants' | 'moments' | 'langue'>;
+type Donnees = { ev: EventConfig; reponse: ReponseInvitation; photo: Uint8Array | null; polices: Polices; urlQr: string };
+/** Données d'une page : `photo` indique seulement s'il faut lui réserver une place. */
+type Page = Omit<Donnees, 'polices'>;
 
 const A5: [number, number] = [419.53, 595.28];
 const MARGE = 24;
@@ -109,16 +109,38 @@ const CADRE = { w: 190, h: 150 };
 
 type Ligne = { texte: string; police: PDFFont; taille: number };
 
-async function preparer(d: Donnees) {
-  const { ev, reponse: r } = d;
-  const lang = r.langue;
+/** Document partagé par toutes les pages : polices et photo intégrées une fois, QR codes mis en cache par adresse. */
+type Ressources = {
+  doc: PDFDocument; fTitre: PDFFont; fTexte: PDFFont; fGras: PDFFont;
+  photo: () => Promise<PDFImage> | null; qr: (url: string) => Promise<PDFImage>;
+};
+
+async function preparerDocument(polices: Polices, photo: Uint8Array | null): Promise<Ressources> {
   const doc = await PDFDocument.create();
   doc.registerFontkit(fontkit);
   const [fTitre, fTexte, fGras] = await Promise.all([
-    doc.embedFont(d.polices.titre, OPTIONS_TITRE),
-    doc.embedFont(d.polices.texte, { subset: true }),
-    doc.embedFont(d.polices.texteGras, { subset: true }),
+    doc.embedFont(polices.titre, OPTIONS_TITRE),
+    doc.embedFont(polices.texte, { subset: true }),
+    doc.embedFont(polices.texteGras, { subset: true }),
   ]);
+  // Photo intégrée à la première page qui l'affiche : une invitation sans place pour elle ne l'embarque pas.
+  let img: Promise<PDFImage> | undefined;
+  const qrs = new Map<string, Promise<PDFImage>>();
+  return {
+    doc, fTitre, fTexte, fGras,
+    photo: () => (photo ? (img ??= doc.embedJpg(photo)) : null),
+    qr: (url) => {
+      let q = qrs.get(url);
+      if (!q) qrs.set(url, (q = QRCode.toBuffer(url, { margin: 1, width: 240 }).then((png) => doc.embedPng(png))));
+      return q;
+    },
+  };
+}
+
+function disposer(res: Ressources, d: Page) {
+  const { ev, reponse: r } = d;
+  const { fTitre, fTexte, fGras } = res;
+  const lang = r.langue;
   const noms = [r.nom, ...r.accompagnants].map((n) => dessinable(n, fTitre)).filter(Boolean);
   const texteNoms = noms.length > 1 ? `${noms.slice(0, -1).join(', ')} & ${noms.at(-1)}` : noms[0] ?? '';
   const lignesMoments: Ligne[] = ev.moments.filter((m) => r.moments.includes(m.id)).flatMap((m) => {
@@ -148,37 +170,41 @@ async function preparer(d: Donnees) {
     }
     yFin = HAUT_CONTENU - (16 + lignesNoms.length * disp.tailleNoms + 36 + (lignesMoments.length ? 12 + lignesMoments.length * disp.interligne + 14 : 0));
   }
-  return { doc, fTitre, fTexte, fGras, lignesNoms, lignesMoments, disp, yFin };
+  return { lignesNoms, lignesMoments, disp, yFin };
 }
 
-/** Disposition retenue et position la plus basse du contenu (utile aux tests). */
-export async function mesurerInvitation(d: Donnees): Promise<{ disposition: Disposition; yFin: number }> {
-  const p = await preparer(d);
-  return { disposition: p.disp, yFin: p.yFin };
-}
-
-export async function genererInvitation(d: Donnees): Promise<Uint8Array> {
-  const { ev, reponse: r } = d;
-  const lang = r.langue;
-  const T = TXT[lang];
+/** Page A5 avec le fond et le bandeau (étiquette et titre de l'événement). */
+function nouvellePage(res: Ressources, ev: EventConfig, lang: Lang): PDFPage {
+  const { doc, fTitre, fGras } = res;
   const c = couleursTheme(ev.theme);
-  const { doc, fTitre, fTexte, fGras, lignesNoms, lignesMoments, disp } = await preparer(d);
   const page = doc.addPage(A5);
-
   page.drawRectangle({ x: 0, y: 0, width: W, height: H, color: couleur(c.fond) });
 
   // Bandeau
   page.drawRectangle({ x: 0, y: H - 110, width: W, height: 110, color: couleur(c.principaleFonce) });
-  centrer(page, T.etiquette, fGras, 10, H - 34, couleur(c.fond));
+  centrer(page, TXT[lang].etiquette, fGras, 10, H - 34, couleur(c.fond));
   const titre = dessinable(t(ev.site.titre, lang), fTitre);
   let tailleTitre = 40;
   while (fTitre.widthOfTextAtSize(titre, tailleTitre) > LARGEUR && tailleTitre > 18) tailleTitre -= 2;
   centrer(page, titre, fTitre, tailleTitre, H - 80, couleur(c.fond));
+  return page;
+}
+
+/** Ajoute l'invitation d'une réponse ; retourne la disposition retenue et la position la plus basse du contenu. */
+async function ajouterPage(res: Ressources, d: Page): Promise<{ disposition: Disposition; yFin: number }> {
+  const { ev, reponse: r } = d;
+  const lang = r.langue;
+  const T = TXT[lang];
+  const c = couleursTheme(ev.theme);
+  const { fTexte, fGras, fTitre } = res;
+  const { lignesNoms, lignesMoments, disp, yFin } = disposer(res, d);
+  const page = nouvellePage(res, ev, lang);
 
   // Photo façon polaroïd
   let y = HAUT_CONTENU;
-  if (disp.photo && d.photo) {
-    const img = await doc.embedJpg(d.photo);
+  const photo = disp.photo ? res.photo() : null;
+  if (photo) {
+    const img = await photo;
     const dim = img.scaleToFit(CADRE.w - 14, CADRE.h - 34);
     const x0 = (W - CADRE.w) / 2;
     y -= CADRE.h;
@@ -211,15 +237,42 @@ export async function genererInvitation(d: Donnees): Promise<Uint8Array> {
   }
 
   // QR code vers le programme
-  const png = await QRCode.toBuffer(d.urlQr, { margin: 1, width: 240 });
-  const qr = await doc.embedPng(png);
+  const qr = await res.qr(d.urlQr);
   page.drawImage(qr, { x: W - MARGE - 64, y: MARGE, width: 64, height: 64 });
   T.qr.forEach((ligne, i) => {
     const w = fTexte.widthOfTextAtSize(ligne, 8);
     page.drawText(ligne, { x: W - MARGE - 72 - w, y: MARGE + 34 - i * 11, size: 8, font: fTexte, color: couleur(c.texteDoux) });
   });
 
-  doc.setTitle(`Invitation – ${r.nom}`);
-  doc.setCreator(t(ev.site.titre, lang));
-  return doc.save();
+  return { disposition: disp, yFin };
+}
+
+/** Disposition retenue et position la plus basse du contenu (utile aux tests). */
+export async function mesurerInvitation(d: Donnees): Promise<{ disposition: Disposition; yFin: number }> {
+  return ajouterPage(await preparerDocument(d.polices, d.photo), d);
+}
+
+export async function genererInvitation(d: Donnees): Promise<Uint8Array> {
+  const res = await preparerDocument(d.polices, d.photo);
+  await ajouterPage(res, d);
+  res.doc.setTitle(`Invitation – ${d.reponse.nom}`);
+  res.doc.setCreator(t(d.ev.site.titre, d.reponse.langue));
+  return res.doc.save();
+}
+
+/** Toutes les invitations dans un seul PDF, une page A5 par réponse. */
+export async function genererInvitations(d: {
+  ev: EventConfig; reponses: ReponseInvitation[]; photo: Uint8Array | null; polices: Polices; urlQr: (langue: Lang) => string;
+}): Promise<Uint8Array> {
+  const { ev } = d;
+  const res = await preparerDocument(d.polices, d.photo);
+  for (const reponse of d.reponses) await ajouterPage(res, { ev, reponse, photo: d.photo, urlQr: d.urlQr(reponse.langue) });
+  if (!d.reponses.length) {
+    const page = nouvellePage(res, ev, 'fr');
+    centrer(page, 'Aucun invité confirmé pour l\'instant.', res.fTexte, 11, HAUT_CONTENU - 40, couleur(couleursTheme(ev.theme).texteDoux));
+  }
+  const titreFr = t(ev.site.titre, 'fr');
+  res.doc.setTitle(`Invitations – ${titreFr}`);
+  res.doc.setCreator(titreFr);
+  return res.doc.save();
 }

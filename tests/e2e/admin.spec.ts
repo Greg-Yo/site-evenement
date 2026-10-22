@@ -80,6 +80,15 @@ test('téléchargement de la liste des confirmés', async ({ page }) => {
   expect(readFileSync(await t.path()).subarray(0, 5).toString()).toBe('%PDF-');
 });
 
+test('téléchargement de toutes les invitations', async ({ page }, info) => {
+  await page.goto('/fr/rsvp');
+  await repondre(page, { vient: 'oui', nom: 'Pia Invitations', email: email(info, 'adm-invs'), moment: ['diner'] });
+  await connecter(page);
+  const [t] = await Promise.all([page.waitForEvent('download'), page.getByRole('link', { name: /Toutes les invitations/ }).click()]);
+  expect(t.suggestedFilename()).toBe('invitations.pdf');
+  expect(readFileSync(await t.path()).subarray(0, 5).toString()).toBe('%PDF-');
+});
+
 test('actions : invitation PDF, renvoi, modification, suppression', async ({ page }, info) => {
   const adr = email(info, 'adm-actions');
   await page.goto('/fr/rsvp');

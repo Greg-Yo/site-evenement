@@ -10,12 +10,14 @@ import { couleur, couper, dessinable, OPTIONS_TITRE, tronquer, type Polices } fr
 
 export type LigneListe = { nom: string; accompagnants: string; email: string; telephone: string; personnes: number; moments: string };
 
+/** Invités qui viennent, triés par nom. */
+export const confirmesParNom = (reponses: Reponse[]): Reponse[] =>
+  reponses.filter((r) => r.vient).sort((a, b) => a.nom.localeCompare(b.nom, 'fr', { sensitivity: 'base' }));
+
 /** Invités qui viennent, triés par nom ; moments abrégés en une lettre. */
 export function lignesListe(ev: EventConfig, reponses: Reponse[]): LigneListe[] {
   const abr = abreviations(ev.moments.map((m) => ({ id: m.id, titre: m.titre.fr })), 1);
-  return reponses
-    .filter((r) => r.vient)
-    .sort((a, b) => a.nom.localeCompare(b.nom, 'fr', { sensitivity: 'base' }))
+  return confirmesParNom(reponses)
     .map((r) => ({
       nom: r.nom,
       accompagnants: r.accompagnants.length ? r.accompagnants.join(', ') : '—',

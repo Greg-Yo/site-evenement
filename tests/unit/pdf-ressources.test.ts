@@ -15,3 +15,8 @@ test('photoJpeg : JPEG de 1 200 px au plus, intégrable par pdf-lib ; null si ab
   expect((await doc.embedJpg(jpg!)).width).toBeLessThanOrEqual(1200);
   expect(await photoJpeg('photos/absente.jpg')).toBeNull();
 });
+
+test('photoJpeg est mise en cache', async () => {
+  const a = await photoJpeg('photos/hero.jpg');
+  expect(await photoJpeg('photos/hero.jpg')).toBe(a);
+});
