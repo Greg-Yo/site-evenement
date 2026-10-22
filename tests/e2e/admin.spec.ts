@@ -150,6 +150,8 @@ test('accessibilité WCAG AA de la connexion et des onglets', async ({ page }) =
   expect(await violations(page)).toEqual([]);
   await page.goto('/admin/livre-dor');
   expect(await violations(page)).toEqual([]);
+  await page.goto('/admin/outbox');
+  expect(await violations(page)).toEqual([]);
 });
 
 test('livre d’or : masquer, réafficher, supprimer (la réponse reste)', async ({ page }, info) => {

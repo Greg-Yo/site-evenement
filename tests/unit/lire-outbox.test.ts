@@ -47,3 +47,11 @@ test('lireFichierOutbox : message et pièces jointes déclarées seulement', () 
   expect(lireFichierOutbox(racine, `${premier.dossier}\n`, 'message.html')).toBeNull();
   expect(lireFichierOutbox(racine, '20990101-000000-000-1', 'message.html')).toBeNull();
 });
+
+test('lireFichierOutbox : meta.json modifié à la main déclarant ../x', () => {
+  const [, premier] = listerOutbox(racine);
+  const m = join(racine, premier.dossier, 'meta.json');
+  writeFileSync(m, JSON.stringify({ a: 'x@x.fr', sujet: 's', date: '2027-01-15T10:00:00.000Z', piecesJointes: ['../x', '..\\x', '..'] }));
+  writeFileSync(join(racine, 'x'), 'secret');
+  for (const f of ['../x', '..\\x', '..']) expect(lireFichierOutbox(racine, premier.dossier, f)).toBeNull();
+});

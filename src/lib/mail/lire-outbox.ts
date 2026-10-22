@@ -1,5 +1,5 @@
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, lstatSync, readdirSync, readFileSync } from 'node:fs';
+import { basename, join } from 'node:path';
 
 export type EntreeOutbox = { dossier: string; a: string; sujet: string; date: string; piecesJointes: string[] };
 
@@ -38,9 +38,11 @@ export function lireFichierOutbox(racine: string, dossier: string, fichier: stri
   if (!meta) return null;
   // Seuls message.html et les pièces jointes déclarées ; aucun chemin n'est construit avant ce contrôle.
   if (fichier !== 'message.html' && !meta.piecesJointes.includes(fichier)) return null;
+  // Défense en profondeur : un meta.json modifié à la main ne doit pas sortir du dossier.
+  if (fichier !== basename(fichier) || /[\\/]|\.\./.test(fichier)) return null;
   try {
     const chemin = join(racine, dossier, fichier);
-    if (!statSync(chemin).isFile()) return null;
+    if (!lstatSync(chemin).isFile()) return null;
     return { contenu: readFileSync(chemin), type: typeDe(fichier) };
   } catch {
     return null;
