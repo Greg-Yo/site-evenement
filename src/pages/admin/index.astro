@@ -1,7 +1,7 @@
 ---
 import Admin from '../../layouts/Admin.astro';
 import type { Reponse } from '../../lib/db';
-import { abreviations, filtrer, lireFiltres, statistiques } from '../../lib/admin/reponses';
+import { abreviations, filtrer, lireFiltres, messageFlash, statistiques } from '../../lib/admin/reponses';
 import { horodatageLocal, nombrePersonnes } from '../../lib/rsvp';
 import { getDeps } from '../../lib/services';
 
@@ -10,6 +10,7 @@ const ev = deps.ev;
 const ids = ev.moments.map((m) => m.id);
 const toutes = await deps.db.toutes();
 const f = lireFiltres(Astro.url.searchParams, ids);
+const flash = messageFlash(Astro.url.searchParams.get('ok'));
 const affichees = filtrer(toutes, f);
 const stats = statistiques(toutes, ids);
 const abr = abreviations(ev.moments.map((m) => ({ id: m.id, titre: m.titre.fr })), 3);
@@ -32,6 +33,7 @@ const recuLe = (r: Reponse) => horodatageLocal(r.creeLe, ev.evenement.date_debut
     <h1>Réponses</h1>
     <a class="btn btn-contour btn-petit" href="/api/admin/export.csv"><span aria-hidden="true">⬇</span>{' '}Export CSV / Excel</a>
   </div>
+  {flash && <p class={`flash ${flash.type}`} role={flash.type === 'ok' ? 'status' : 'alert'}>{flash.texte}</p>}
   <ul class="tuiles">
     {tuiles.map((t) => <li><b>{t.n}</b><span>{t.libelle}</span></li>)}
   </ul>
@@ -69,7 +71,7 @@ const recuLe = (r: Reponse) => horodatageLocal(r.creeLe, ev.evenement.date_debut
     <div class="defilement" tabindex="0" role="region" aria-label="Tableau des réponses">
       <table>
         <thead>
-          <tr><th scope="col">Invité</th><th scope="col">Contact</th><th scope="col">Présence</th><th scope="col">Pers.</th><th scope="col">Moments</th><th scope="col">Reçu le</th></tr>
+          <tr><th scope="col">Invité</th><th scope="col">Contact</th><th scope="col">Présence</th><th scope="col">Pers.</th><th scope="col">Moments</th><th scope="col">Reçu le</th><th scope="col">Actions</th></tr>
         </thead>
         <tbody>
           {affichees.map((r) => (
@@ -83,6 +85,18 @@ const recuLe = (r: Reponse) => horodatageLocal(r.creeLe, ev.evenement.date_debut
               <td>{nombrePersonnes(r)}</td>
               <td>{moments(r)}</td>
               <td>{recuLe(r)}</td>
+              <td>
+                <div class="actions">
+                  {r.vient && (
+                    <a class="action" href={`/api/admin/reponses/${r.id}/invitation.pdf`} aria-label={`Invitation PDF de ${r.nom}`}><span aria-hidden="true">📄</span></a>
+                  )}
+                  <form method="post" action={`/api/admin/reponses/${r.id}/renvoyer`}>
+                    <button class="action" type="submit" aria-label={`Renvoyer l’e-mail à ${r.nom}`}><span aria-hidden="true">✉</span></button>
+                  </form>
+                  <a class="action" href={`/admin/reponses/${r.id}/modifier`} aria-label={`Modifier la réponse de ${r.nom}`}><span aria-hidden="true">✎</span></a>
+                  <a class="action" href={`/admin/reponses/${r.id}/supprimer`} aria-label={`Supprimer la réponse de ${r.nom}`}><span aria-hidden="true">🗑</span></a>
+                </div>
+              </td>
             </tr>
           ))}
         </tbody>
@@ -94,6 +108,9 @@ const recuLe = (r: Reponse) => horodatageLocal(r.creeLe, ev.evenement.date_debut
   .entete { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px 16px; margin: 0 0 16px; }
   h1 { margin: 0; font-size: 1.6rem; }
   ul { list-style: none; margin: 0; padding: 0; }
+  .flash { border-radius: 14px; padding: 14px 18px; font-weight: 700; margin: 0 0 18px; }
+  .flash.ok { background: #dff3e3; color: #1e6b32; }
+  .flash.erreur { background: #f6dede; color: #8d2323; }
   .tuiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 18px; }
   .tuiles li { background: #fff; border-radius: 14px; padding: 14px 16px; box-shadow: 0 3px 10px rgba(58,36,25,.07); }
   .tuiles b { display: block; font-size: 1.9rem; line-height: 1.1; color: var(--c-principale-fonce); }
@@ -113,6 +130,13 @@ const recuLe = (r: Reponse) => horodatageLocal(r.creeLe, ev.evenement.date_debut
   th { text-align: left; background: #f5ebe2; padding: 10px 12px; font-size: .75rem; text-transform: uppercase; letter-spacing: .04em; white-space: nowrap; }
   td { padding: 10px 12px; border-top: 1px solid #eadfd5; vertical-align: middle; }
   .ligne { display: block; }
+  .actions { display: flex; gap: 6px; white-space: nowrap; }
+  .actions form { margin: 0; }
+  .action {
+    display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 10px;
+    border: 2px solid #eadfd5; background: #fff; color: var(--c-texte); font: inherit; font-size: 1rem; text-decoration: none; cursor: pointer;
+  }
+  .action:hover { border-color: var(--c-texte-doux); }
   .pastille { display: inline-block; border-radius: 20px; padding: 2px 10px; font-weight: 800; font-size: .75rem; white-space: nowrap; }
   .oui { background: #dff3e3; color: #1e6b32; }
   .non { background: #f6dede; color: #8d2323; }

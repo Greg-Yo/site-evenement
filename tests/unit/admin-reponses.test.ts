@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { abreviations, filtrer, lireFiltres, statistiques } from '../../src/lib/admin/reponses';
+import { abreviations, filtrer, idDepuisParam, lireFiltres, messageFlash, statistiques } from '../../src/lib/admin/reponses';
 import { rep } from './fabriques';
 
 const liste = [
@@ -31,5 +31,15 @@ describe('admin : réponses', () => {
     expect(abreviations(m, 3)).toEqual({ a: 'Acc', d: 'Dîn', s: 'Soi', b: 'Bru' });
     expect(abreviations([{ id: 'x', titre: 'Soirée' }, { id: 'y', titre: 'Soupe' }], 1)).toEqual({ x: 'Soi', y: 'Sou' });
     expect(abreviations([{ id: 'x', titre: 'Dîner' }, { id: 'y', titre: 'Dîner' }], 1)).toEqual({ x: 'Dîner 1', y: 'Dîner 2' });
+  });
+  test('idDepuisParam', () => {
+    expect(idDepuisParam('12')).toBe(12);
+    for (const v of [undefined, '', '0', '-3', '1.5', '12abc', '1e3']) expect(idDepuisParam(v)).toBeNull();
+  });
+  test('messageFlash', () => {
+    expect(messageFlash('renvoye')).toEqual({ texte: 'E-mail renvoyé.', type: 'ok' });
+    expect(messageFlash('introuvable')).toEqual({ texte: "Cette réponse n'existe plus.", type: 'erreur' });
+    expect(messageFlash('<script>')).toBeNull();
+    expect(messageFlash(null)).toBeNull();
   });
 });

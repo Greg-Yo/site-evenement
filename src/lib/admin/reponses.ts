@@ -64,3 +64,26 @@ export function abreviations(moments: { id: string; titre: string }[], longueurM
   for (const g of conflits()) g.forEach((i, n) => { res[moments[i].id] = `${abr(i)} ${n + 1}`; });
   return res;
 }
+
+/** Identifiant d'une route : entier strictement positif écrit en chiffres, sinon null. */
+export function idDepuisParam(v: string | undefined): number | null {
+  if (!v || !/^[1-9][0-9]*$/.test(v)) return null;
+  const n = Number(v);
+  return Number.isSafeInteger(n) ? n : null;
+}
+
+const FLASH: Record<string, { texte: string; type: 'ok' | 'erreur' }> = {
+  renvoye: { texte: 'E-mail renvoyé.', type: 'ok' },
+  echec_envoi: { texte: "L'e-mail n'a pas pu être envoyé. Réessayez plus tard.", type: 'erreur' },
+  modifie: { texte: "Réponse modifiée. Renvoyez l'e-mail si l'invité doit recevoir la nouvelle invitation.", type: 'ok' },
+  supprime: { texte: 'Réponse supprimée.', type: 'ok' },
+  introuvable: { texte: "Cette réponse n'existe plus.", type: 'erreur' },
+  masque: { texte: 'Message masqué.', type: 'ok' },
+  affiche: { texte: 'Message affiché.', type: 'ok' },
+  message_supprime: { texte: 'Message supprimé.', type: 'ok' },
+};
+
+/** Message de retour d'une action (`?ok=<code>`) ; code inconnu : rien. */
+export function messageFlash(code: string | null): { texte: string; type: 'ok' | 'erreur' } | null {
+  return code !== null && Object.hasOwn(FLASH, code) ? FLASH[code] : null;
+}

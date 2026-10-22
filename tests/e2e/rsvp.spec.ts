@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { email } from './admin';
+import { email, ORIGINE_SERVEUR } from './admin';
 import { messagesEnvoyesA } from './outbox';
 
 
@@ -150,7 +150,7 @@ test('modification : l’e-mail ne peut pas être changé par une requête direc
   const chemin = new URL(lien).pathname + new URL(lien).search;
   const reponse = await page.request.post(chemin, {
     form: { vient: 'oui', nom: 'Emma Wilson', email: pirate, moment: 'accueil' },
-    headers: { Origin: new URL(page.url()).origin },
+    headers: { Origin: ORIGINE_SERVEUR },
   });
   expect(reponse.status()).toBe(200);
   expect(messagesEnvoyesA(pirate)).toHaveLength(0);
@@ -168,7 +168,7 @@ test('modification : envoi direct avec un jeton inconnu', async ({ page }, info)
   await page.goto('/fr/rsvp');
   const reponse = await page.request.post('/fr/rsvp/modifier?jeton=inconnu', {
     form: { vient: 'oui', nom: 'X Y', email: adresse, moment: 'accueil' },
-    headers: { Origin: new URL(page.url()).origin },
+    headers: { Origin: ORIGINE_SERVEUR },
   });
   expect(reponse.status()).toBe(200);
   expect(await reponse.text()).toContain('pas valide');
@@ -190,8 +190,7 @@ test('double clic sur envoyer : une seule réponse, un seul e-mail', async ({ pa
 
 test('envoi qui n’est pas un formulaire : pas d’erreur serveur', async ({ page }) => {
   await page.goto('/fr/rsvp');
-  const origin = new URL(page.url()).origin;
-  const a = await page.request.post('/fr/rsvp', { data: 'x', headers: { 'content-type': 'text/plain', Origin: origin } });
+  const a = await page.request.post('/fr/rsvp', { data: 'x', headers: { 'content-type': 'text/plain', Origin: ORIGINE_SERVEUR } });
   expect(a.status()).toBe(200);
 });
 

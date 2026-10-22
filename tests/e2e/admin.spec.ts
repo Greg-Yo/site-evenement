@@ -1,7 +1,8 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
-import { connecter, email, repondre } from './admin';
+import { connecter, email, ORIGINE_SERVEUR, repondre } from './admin';
+import { messagesEnvoyesA } from './outbox';
 
 test('sans session : /admin redirige vers la connexion', async ({ page }) => {
   await page.goto('/admin');
@@ -32,7 +33,7 @@ test('connexion, cookie sûr, en-têtes, puis déconnexion', async ({ page, cont
 });
 
 test('cookie falsifié refusé', async ({ page, context }) => {
-  await context.addCookies([{ name: 'admin_session', value: '99999999999999.faux', url: 'http://localhost:4322' }]);
+  await context.addCookies([{ name: 'admin_session', value: '99999999999999.faux', url: 'http://127.0.0.1:4322' }]);
   await page.goto('/admin');
   await expect(page).toHaveURL(/\/admin\/connexion$/);
 });
@@ -68,8 +69,47 @@ test('tableau : compteurs, recherche, filtre de présence, export CSV', async ({
 });
 
 test('export CSV sans session : 401', async ({ playwright }) => {
-  const ctx = await playwright.request.newContext({ baseURL: 'http://localhost:4322' });
+  const ctx = await playwright.request.newContext({ baseURL: 'http://127.0.0.1:4322' });
   expect((await ctx.get('/api/admin/export.csv')).status()).toBe(401);
+});
+
+test('actions : invitation PDF, renvoi, modification, suppression', async ({ page }, info) => {
+  const adr = email(info, 'adm-actions');
+  await page.goto('/fr/rsvp');
+  await repondre(page, { vient: 'oui', nom: 'Jade Actions', email: adr, moment: ['accueil'] });
+  await connecter(page);
+  await page.goto(`/admin?q=${encodeURIComponent(adr)}`);
+
+  const [pdf] = await Promise.all([page.waitForEvent('download'), page.getByRole('link', { name: 'Invitation PDF de Jade Actions' }).click()]);
+  expect(readFileSync(await pdf.path()).subarray(0, 5).toString()).toBe('%PDF-');
+
+  await page.getByRole('button', { name: 'Renvoyer l’e-mail à Jade Actions' }).click();
+  await expect(page.getByRole('status')).toHaveText('E-mail renvoyé.');
+  expect(messagesEnvoyesA(adr)).toHaveLength(2);
+
+  await page.goto(`/admin?q=${encodeURIComponent(adr)}`);
+  await page.getByRole('link', { name: 'Modifier la réponse de Jade Actions' }).click();
+  await page.getByLabel('Prénom & nom').fill('Jade Modifiée');
+  await page.getByRole('button', { name: 'Enregistrer' }).click();
+  await expect(page.getByRole('status')).toContainText('Réponse modifiée.');
+
+  await page.goto(`/admin?q=${encodeURIComponent(adr)}`);
+  await expect(page.getByRole('row').nth(1)).toContainText('Jade Modifiée');
+  await page.getByRole('link', { name: 'Supprimer la réponse de Jade Modifiée' }).click();
+  await page.getByRole('button', { name: 'Supprimer définitivement' }).click();
+  await expect(page.getByRole('status')).toHaveText('Réponse supprimée.');
+  await page.goto(`/admin?q=${encodeURIComponent(adr)}`);
+  await expect(page.getByText('Aucune réponse ne correspond à ces filtres.')).toBeVisible();
+});
+
+test('action sur une réponse inexistante : message, pas d’erreur 500', async ({ page }) => {
+  await connecter(page);
+  const rep = await page.request.post('/api/admin/reponses/999999/renvoyer', { headers: { Origin: ORIGINE_SERVEUR }, form: {} });
+  expect(rep.status()).toBeLessThan(500);
+  await page.goto(rep.url());
+  await expect(page.getByRole('alert')).toHaveText("Cette réponse n'existe plus.");
+  expect((await page.request.get('/api/admin/reponses/999999/invitation.pdf')).status()).toBe(404);
+  expect((await page.request.get('/admin/reponses/abc/supprimer')).status()).toBe(404);
 });
 
 test('pas de défilement horizontal de la page à 360 px', async ({ page }) => {
