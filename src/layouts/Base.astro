@@ -11,6 +11,7 @@ const { lang, title, current } = Astro.props;
 const ev = getEvent();
 const siteTitre = t(ev.site.titre, lang);
 const logo = ev.site.logo ?? siteTitre;
+const urlBase = ev.site.url_publique.replace(/\/+$/, '');
 ---
 <!doctype html>
 <html lang={lang} style={themeVars(ev.theme)}>
@@ -19,8 +20,9 @@ const logo = ev.site.logo ?? siteTitre;
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title ? `${title} · ${siteTitre}` : siteTitre}</title>
     <meta name="description" content={t(ev.accueil.accroche, lang)} />
-    <link rel="alternate" hreflang="fr" href={Astro.url.pathname.replace(/^\/en/, '/fr')} />
-    <link rel="alternate" hreflang="en" href={Astro.url.pathname.replace(/^\/fr/, '/en')} />
+    <link rel="alternate" hreflang="fr" href={urlBase + Astro.url.pathname.replace(/^\/en/, '/fr')} />
+    <link rel="alternate" hreflang="en" href={urlBase + Astro.url.pathname.replace(/^\/fr/, '/en')} />
+    <link rel="alternate" hreflang="x-default" href={`${urlBase}/`} />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href={fontsHref(ev.theme)} />

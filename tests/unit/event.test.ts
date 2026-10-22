@@ -136,6 +136,19 @@ describe('parseEvent', () => {
     expect(ev.infos.tenue).toEqual({ texte: { fr: 'Chic' }, couleurs: [] });
     expect(ev.infos.cadeaux).toBeUndefined();
   });
+
+  test('hébergement : lat sans lng refusé', () => {
+    expect(problemsOf(base + '\ninfos:\n  hebergements:\n    - { nom: "Hôtel", lat: 44.8 }\n'))
+      .toContain('infos.hebergements[0] : lat et lng vont ensemble');
+  });
+  test('hébergement : lat hors bornes refusé', () => {
+    expect(problemsOf(base + '\ninfos:\n  hebergements:\n    - { nom: "Hôtel", lat: 120, lng: 0 }\n')
+      .some((p) => p.startsWith('infos.hebergements[0].lat :'))).toBe(true);
+  });
+  test('police : caractères spéciaux refusés', () => {
+    expect(problemsOf(base + `\ntheme:\n  polices: { titres: "Caveat';x" }\n`))
+      .toContain('theme.polices.titres : lettres, chiffres et espaces uniquement');
+  });
 });
 
 describe('t', () => {

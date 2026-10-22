@@ -114,3 +114,12 @@ test.describe('Infos pratiques', () => {
     await expect(page.getByText('Indique simplement tes accompagnants')).toBeVisible();
   });
 });
+
+test('robots.txt et hreflang absolus', async ({ page, request }) => {
+  const robots = await (await request.get('/robots.txt')).text();
+  expect(robots).toContain('Disallow: /admin');
+  expect(robots).toContain('Disallow: /api/');
+  await page.goto('/fr/programme');
+  await expect(page.locator('link[hreflang="en"]')).toHaveAttribute('href', 'http://localhost:4321/en/programme');
+  await expect(page.locator('link[hreflang="x-default"]')).toHaveAttribute('href', 'http://localhost:4321/');
+});

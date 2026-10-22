@@ -13,6 +13,7 @@ const L = z
   .transform((v): Localized => (typeof v === 'string' ? { fr: v } : v));
 const Photo = z.string().regex(/^photos\/[^/]+\.(jpe?g|png|webp)$/i, 'doit être de la forme photos/nom.jpg');
 const Couleur = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'couleur au format #rrggbb');
+const Police = z.string().regex(/^[A-Za-z0-9 ]+$/, 'lettres, chiffres et espaces uniquement');
 const Id = z.string().regex(/^[a-z0-9-]+$/, 'minuscules, chiffres et tirets uniquement');
 
 const schema = z.object({
@@ -25,7 +26,7 @@ const schema = z.object({
   theme: z
     .object({
       couleurs: z.object({ principale: Couleur, fond: Couleur, texte: Couleur, douce: Couleur }).partial().prefault({}),
-      polices: z.object({ titres: z.string(), texte: z.string() }).partial().prefault({}),
+      polices: z.object({ titres: Police, texte: Police }).partial().prefault({}),
     })
     .prefault({}),
   evenement: z.object({
@@ -73,8 +74,11 @@ const schema = z.object({
             prix: z.string().optional(),
             lien: z.url({ protocol: /^https?$/ }).optional(),
             photo: Photo.optional(),
-            lat: z.number().optional(),
-            lng: z.number().optional(),
+            lat: z.number().min(-90).max(90).optional(),
+            lng: z.number().min(-180).max(180).optional(),
+          })
+          .superRefine((h, ctx) => {
+            if ((h.lat === undefined) !== (h.lng === undefined)) ctx.addIssue({ code: 'custom', message: 'lat et lng vont ensemble' });
           }),
         )
         .default([]),
