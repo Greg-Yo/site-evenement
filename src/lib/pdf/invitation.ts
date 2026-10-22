@@ -18,7 +18,7 @@ const MARGE = 24;
 /** Caveat : variantes contextuelles et ligatures désactivées (pdf-lib en avance mal les glyphes), police complète (le sous-ensemble la corrompt). */
 export const OPTIONS_TITRE = { subset: false, features: { calt: false, liga: false, clig: false, dlig: false, rlig: false, salt: false, ss01: false } };
 
-const couleur = (hex: string) => rgb(...([1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255) as [number, number, number]));
+export const couleur = (hex: string) => rgb(...([1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255) as [number, number, number]));
 
 /** Retire les caractères que la police ne sait pas dessiner (emoji, idéogrammes…). */
 export function dessinable(texte: string, police: PDFFont): string {

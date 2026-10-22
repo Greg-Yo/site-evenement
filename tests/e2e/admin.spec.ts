@@ -73,6 +73,13 @@ test('export CSV sans session : 401', async ({ playwright }) => {
   expect((await ctx.get('/api/admin/export.csv')).status()).toBe(401);
 });
 
+test('téléchargement de la liste des confirmés', async ({ page }) => {
+  await connecter(page);
+  const [t] = await Promise.all([page.waitForEvent('download'), page.getByRole('link', { name: /PDF liste des confirmés/ }).click()]);
+  expect(t.suggestedFilename()).toBe('liste-des-confirmes.pdf');
+  expect(readFileSync(await t.path()).subarray(0, 5).toString()).toBe('%PDF-');
+});
+
 test('actions : invitation PDF, renvoi, modification, suppression', async ({ page }, info) => {
   const adr = email(info, 'adm-actions');
   await page.goto('/fr/rsvp');

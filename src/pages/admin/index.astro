@@ -31,7 +31,10 @@ const recuLe = (r: Reponse) => horodatageLocal(r.creeLe, ev.evenement.date_debut
 <Admin titre="Réponses" actif="reponses">
   <div class="entete">
     <h1>Réponses</h1>
-    <a class="btn btn-contour btn-petit" href="/api/admin/export.csv"><span aria-hidden="true">⬇</span>{' '}Export CSV / Excel</a>
+    <div class="boutons">
+      <a class="btn btn-contour btn-petit" href="/api/admin/export.csv"><span aria-hidden="true">⬇</span>{' '}Export CSV / Excel</a>
+      <a class="btn btn-contour btn-petit" href="/api/admin/liste.pdf"><span aria-hidden="true">🖨</span>{' '}PDF liste des confirmés</a>
+    </div>
   </div>
   {flash && <p class={`flash ${flash.type}`} role={flash.type === 'ok' ? 'status' : 'alert'}>{flash.texte}</p>}
   <ul class="tuiles">
@@ -107,6 +110,7 @@ const recuLe = (r: Reponse) => horodatageLocal(r.creeLe, ev.evenement.date_debut
 <style>
   .entete { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px 16px; margin: 0 0 16px; }
   h1 { margin: 0; font-size: 1.6rem; }
+  .boutons { display: flex; flex-wrap: wrap; gap: 8px; }
   ul { list-style: none; margin: 0; padding: 0; }
   .flash { border-radius: 14px; padding: 14px 18px; font-weight: 700; margin: 0 0 18px; }
   .flash.ok { background: #dff3e3; color: #1e6b32; }
