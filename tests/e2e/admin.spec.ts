@@ -131,7 +131,7 @@ test('action sur une réponse inexistante : message, pas d’erreur 500', async 
 test('pas de défilement horizontal de la page à 360 px', async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await connecter(page);
-  for (const url of ['/admin']) {
+  for (const url of ['/admin', '/admin/livre-dor']) {
     await page.goto(url);
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
   }
@@ -148,4 +148,35 @@ test('accessibilité WCAG AA de la connexion et des onglets', async ({ page }) =
   expect(await violations(page)).toEqual([]);
   await connecter(page);
   expect(await violations(page)).toEqual([]);
+  await page.goto('/admin/livre-dor');
+  expect(await violations(page)).toEqual([]);
+});
+
+test('livre d’or : masquer, réafficher, supprimer (la réponse reste)', async ({ page }, info) => {
+  const adr = email(info, 'adm-livre');
+  const texte = `Message de modération ${info.project.name} ${Date.now()}`;
+  await page.goto('/fr/rsvp');
+  await repondre(page, { vient: 'oui', nom: 'Lou Livre', email: adr, moment: ['diner'], message: texte });
+  await page.goto('/fr/rsvp');
+  await expect(page.getByText(texte)).toBeVisible();
+
+  await connecter(page);
+  await page.goto('/admin/livre-dor');
+  const carte = page.getByRole('listitem').filter({ hasText: texte });
+  await carte.getByRole('button', { name: 'Masquer' }).click();
+  await expect(page.getByRole('status')).toHaveText('Message masqué.');
+  await page.goto('/fr/rsvp');
+  await expect(page.getByText(texte)).toHaveCount(0);
+
+  await page.goto('/admin/livre-dor');
+  await page.getByRole('listitem').filter({ hasText: texte }).getByRole('button', { name: 'Afficher' }).click();
+  await page.goto('/fr/rsvp');
+  await expect(page.getByText(texte)).toBeVisible();
+
+  await page.goto('/admin/livre-dor');
+  await page.getByRole('listitem').filter({ hasText: texte }).getByRole('button', { name: 'Supprimer' }).click();
+  await expect(page.getByRole('status')).toHaveText('Message supprimé.');
+  await expect(page.getByText(texte)).toHaveCount(0);
+  await page.goto(`/admin?q=${encodeURIComponent(adr)}`);
+  await expect(page.getByRole('row').nth(1)).toContainText('Lou Livre');
 });
