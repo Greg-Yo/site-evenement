@@ -24,10 +24,14 @@ Tout le site est rempli à partir de **`evenement.yaml`** et des photos du dossi
 | `rsvp` | Titre de la page de réponse, message de remerciement |
 | `email` | Nom de l'expéditeur, objet de l'e-mail |
 
+## Date limite de réponse
+- Les réponses sont acceptées jusqu'à la fin du jour `date_limite_rsvp`. Ce jour est évalué dans le décalage horaire de `date_debut` (par exemple `+02:00`), quel que soit le fuseau du serveur.
+- Si un changement d'heure tombe entre la date limite et l'événement, la clôture peut se décaler d'une heure. Choisir une date limite qui laisse de la marge.
+
 ## Invitation PDF et e-mails
 - La photo principale (`accueil.photo_principale`) figure sur l'invitation PDF.
 - Les e-mails utilisent `email.expediteur_nom` et `email.objet`.
-- Les liens des e-mails et le QR code reposent sur `site.url_publique`, à remplacer par l'adresse du site en ligne.
+- Les liens des e-mails et le QR code reposent sur `site.url_publique`, à remplacer par l'adresse du site en ligne (voir [DEPLOIEMENT.md](../DEPLOIEMENT.md)).
 
 ## Crédits des photos d'exemple
 Photos libres de droits issues d'Unsplash (licence Unsplash). Remplace-les par les tiennes.

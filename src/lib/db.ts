@@ -1,4 +1,4 @@
-import { createClient, type Client, type Row } from '@libsql/client';
+import type { Client, Row } from '@libsql/client';
 import { randomBytes } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
 import type { Lang } from './event';
@@ -153,20 +153,29 @@ export class Db {
   }
 }
 
+/** Client natif pour un fichier local ou la mémoire, client web (HTTP) pour une base distante. */
+export function clientPour(url: string): 'natif' | 'web' {
+  return url.startsWith('file:') || url === ':memory:' ? 'natif' : 'web';
+}
+
 export async function openDb(url: string, authToken?: string): Promise<Db> {
   if (url.startsWith('file:')) {
     const chemin = url.slice('file:'.length);
     const dossier = chemin.includes('/') ? chemin.slice(0, chemin.lastIndexOf('/')) : '';
     if (dossier) mkdirSync(dossier, { recursive: true });
   }
+  // Import dynamique : en ligne, le module natif n'est jamais chargé.
+  const { createClient } = clientPour(url) === 'natif' ? await import('@libsql/client') : await import('@libsql/client/web');
   const client = createClient({ url, authToken });
-  for (const sql of SCHEMA) await client.execute(sql);
+  await client.batch(SCHEMA, 'write');
   return new Db(client);
 }
 
 let instance: Promise<Db> | undefined;
 
 export function getDb(): Promise<Db> {
+  // Sans cette vérification, le repli sur un fichier local échoue en ligne (système de fichiers en lecture seule).
+  if (process.env.VERCEL && !process.env.DATABASE_URL) throw new Error('En ligne, DATABASE_URL est obligatoire (base Turso).');
   instance ??= openDb(process.env.DATABASE_URL || 'file:.data/local.db', process.env.DATABASE_TOKEN || undefined)
     .catch((e) => { instance = undefined; throw e; });
   return instance;

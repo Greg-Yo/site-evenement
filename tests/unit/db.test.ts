@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, test } from 'vitest';
-import { ErreurDoublon, openDb, type Db, type NouvelleReponse } from '../../src/lib/db';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { clientPour, ErreurDoublon, getDb, openDb, type Db, type NouvelleReponse } from '../../src/lib/db';
 
 const T0 = new Date('2027-01-10T10:00:00Z');
 const camille: NouvelleReponse = {
@@ -71,4 +71,21 @@ describe('réponses', () => {
     expect((await db.parId(r.id))?.nom).toBe(camille.nom);
     expect(await db.masquerMessage(9999, true)).toBe(false);
   });
+});
+
+test('clientPour', () => {
+  expect(clientPour('file:.data/local.db')).toBe('natif');
+  expect(clientPour(':memory:')).toBe('natif');
+  expect(clientPour('libsql://site-coco.turso.io')).toBe('web');
+  expect(clientPour('https://site-coco.turso.io')).toBe('web');
+});
+
+test('getDb exige DATABASE_URL en ligne', () => {
+  vi.stubEnv('VERCEL', '1');
+  vi.stubEnv('DATABASE_URL', '');
+  try {
+    expect(() => getDb()).toThrow('En ligne, DATABASE_URL est obligatoire (base Turso).');
+  } finally {
+    vi.unstubAllEnvs();
+  }
 });
