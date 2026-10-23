@@ -10,6 +10,8 @@ test('sans session : /admin redirige vers la connexion', async ({ page }) => {
   await expect(page.getByRole('heading', { name: /Espace organisateur/ })).toBeVisible();
 });
 
+// Seul test avec un mot de passe erroné : ne jamais le dupliquer. 2 projets × (1 essai + 1 reprise)
+// = 4 mots de passe erronés, soit tout le budget avant le blocage de 127.0.0.1 (5 échecs en 15 minutes).
 test('mauvais mot de passe : message d’erreur', async ({ page }) => {
   await page.goto('/admin/connexion');
   await page.getByLabel('Mot de passe').fill('pas-le-bon');
@@ -143,13 +145,24 @@ const violations = async (page: Page) => {
   return res.violations.map((v) => `${v.id} : ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`);
 };
 
-test('accessibilité WCAG AA de la connexion et des onglets', async ({ page }) => {
+test('accessibilité WCAG AA de la connexion et des onglets', async ({ page }, info) => {
+  // Un message masqué doit figurer dans le livre d'or analysé.
+  const texte = `Message masqué pour l'audit ${info.project.name} ${Date.now()}`;
+  await page.goto('/fr/rsvp');
+  await repondre(page, { vient: 'oui', nom: 'Axel Audit', email: email(info, 'adm-axe'), moment: ['diner'], message: texte });
+
   await page.goto('/admin/connexion');
   expect(await violations(page)).toEqual([]);
   await connecter(page);
   expect(await violations(page)).toEqual([]);
   await page.goto('/admin/livre-dor');
+  await page.getByRole('listitem').filter({ hasText: texte }).getByRole('button', { name: 'Masquer' }).click();
+  await expect(page.getByRole('status')).toHaveText('Message masqué.');
+  await expect(page.getByRole('listitem').filter({ hasText: texte })).toContainText('· masqué');
   expect(await violations(page)).toEqual([]);
+  // Nettoyage : le message ne gêne pas les autres tests.
+  await page.getByRole('listitem').filter({ hasText: texte }).getByRole('button', { name: 'Supprimer' }).click();
+  await expect(page.getByRole('status')).toHaveText('Message supprimé.');
   await page.goto('/admin/outbox');
   expect(await violations(page)).toEqual([]);
 });

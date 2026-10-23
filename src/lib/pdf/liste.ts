@@ -45,6 +45,15 @@ export function paginer(hauteurs: number[], dispoPremiere: number, dispoSuivante
   return pages;
 }
 
+/** Texte coupé sur au plus `max` lignes ; la dernière finit par « … » s'il en reste. */
+export function lignesCellule(texte: string, police: PDFFont, taille: number, largeur: number, max: number): string[] {
+  const lignes = couper(texte, police, taille, largeur);
+  if (lignes.length <= max) return lignes;
+  const res = lignes.slice(0, max);
+  res[max - 1] = tronquer(`${res[max - 1]}…`, police, taille, largeur);
+  return res;
+}
+
 const A4: [number, number] = [595.28, 841.89];
 const [W, H] = A4;
 const MARGE = 36;
@@ -66,8 +75,9 @@ const INTERLIGNE = 11;
 const HAUT_TABLEAU_1 = H - MARGE - 62;
 const HAUT_TABLEAU_N = H - MARGE - 20;
 const MAX_ACCOMPAGNANTS = 3;
+const MAX_TELEPHONE = 2;
 
-type Cellules = { nom: string; accompagnants: string[]; autres: string[] };
+type Cellules = { nom: string; accompagnants: string[]; email: string; telephone: string[]; fin: string[] };
 
 export async function genererListe(d: { ev: EventConfig; reponses: Reponse[]; polices: Polices; maintenant: Date }): Promise<Uint8Array> {
   const { ev } = d;
@@ -88,18 +98,16 @@ export async function genererListe(d: { ev: EventConfig; reponses: Reponse[]; po
   const cellules: Cellules[] = lignes.map((l) => {
     // Nom par nom : un accompagnant réduit à rien (emoji seul) ne laisse pas de virgule orpheline.
     const noms = l.accompagnants.split(', ').map((n) => dessinable(n, fTexte)).filter(Boolean).join(', ') || '—';
-    let acc = couper(noms, fTexte, 8.5, larg(2));
-    if (acc.length > MAX_ACCOMPAGNANTS) {
-      acc = acc.slice(0, MAX_ACCOMPAGNANTS);
-      acc[MAX_ACCOMPAGNANTS - 1] = tronquer(`${acc[MAX_ACCOMPAGNANTS - 1]}…`, fTexte, 8.5, larg(2));
-    }
     return {
       nom: tronquer(dessinable(l.nom, fGras), fGras, 9, larg(1)),
-      accompagnants: acc,
-      autres: [l.email, l.telephone, String(l.personnes), l.moments].map((v, i) => tronquer(dessinable(v, fTexte), fTexte, 8.5, larg(3 + i))),
+      accompagnants: lignesCellule(noms, fTexte, 8.5, larg(2), MAX_ACCOMPAGNANTS),
+      email: tronquer(dessinable(l.email, fTexte), fTexte, 8.5, larg(3)),
+      // Un numéro international (+33 6 12 34 56 78) dépasse la colonne : deux lignes au plus.
+      telephone: lignesCellule(dessinable(l.telephone, fTexte) || '—', fTexte, 8.5, larg(4), MAX_TELEPHONE),
+      fin: [String(l.personnes), l.moments].map((v, i) => tronquer(dessinable(v, fTexte), fTexte, 8.5, larg(5 + i))),
     };
   });
-  const hauteurs = cellules.map((cl) => Math.max(1, cl.accompagnants.length) * INTERLIGNE + 8);
+  const hauteurs = cellules.map((cl) => Math.max(1, cl.accompagnants.length, cl.telephone.length) * INTERLIGNE + 8);
   const pages = paginer(hauteurs, HAUT_TABLEAU_1 - HAUT_ENTETE_TABLEAU - BAS, HAUT_TABLEAU_N - HAUT_ENTETE_TABLEAU - BAS);
 
   const texte = (p: PDFPage, s: string, x: number, y: number, police: PDFFont, taille: number, coul = c.texte) =>
@@ -143,9 +151,13 @@ export async function genererListe(d: { ev: EventConfig; reponses: Reponse[]; po
     x += COLONNES[1].largeur;
     cl.accompagnants.forEach((l, i) => texte(p, l, x + PAD, base - i * INTERLIGNE, fTexte, 8.5));
     x += COLONNES[2].largeur;
-    cl.autres.forEach((v, i) => {
+    texte(p, cl.email, x + PAD, base, fTexte, 8.5);
+    x += COLONNES[3].largeur;
+    cl.telephone.forEach((l, i) => texte(p, l, x + PAD, base - i * INTERLIGNE, fTexte, 8.5));
+    x += COLONNES[4].largeur;
+    cl.fin.forEach((v, i) => {
       texte(p, v, x + PAD, base, fTexte, 8.5);
-      x += COLONNES[3 + i].largeur;
+      x += COLONNES[5 + i].largeur;
     });
     p.drawLine({ start: { x: MARGE, y: y - h }, end: { x: W - MARGE, y: y - h }, thickness: 0.5, color: couleur('#eeeeee') });
   };

@@ -17,6 +17,9 @@ export function configAdmin(env: Record<string, string | undefined> = process.en
   if (!motDePasse) {
     return { ok: false, probleme: "ADMIN_PASSWORD n'est pas défini : l'espace organisateur est désactivé." };
   }
+  if (motDePasse.length < 12) {
+    return { ok: false, probleme: 'ADMIN_PASSWORD doit contenir au moins 12 caractères.' };
+  }
   const secret = env.SESSION_SECRET;
   if (!secret || secret.length < 32) {
     return { ok: false, probleme: 'SESSION_SECRET doit contenir au moins 32 caractères.' };

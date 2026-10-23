@@ -45,7 +45,9 @@ const jour = (iso: string) => horodatageLocal(iso, deps.ev.evenement.date_debut)
   .vide { background: #fff; border-radius: 14px; padding: 18px; text-align: center; margin: 0; }
   .messages { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
   .messages li { background: #fff; border-radius: 14px; padding: 14px 16px; box-shadow: 0 3px 10px rgba(58,36,25,.07); }
-  .masque { opacity: .6; }
+  /* Pas d'opacité : le texte garde un contraste d'au moins 4.5:1. */
+  .messages li.masque { background: #f5ebe2; border: 2px dashed var(--c-texte-doux); box-shadow: none; }
+  .masque .texte { color: var(--c-texte-doux); }
   .texte { font-family: var(--f-titres); font-size: 1.4rem; line-height: 1.2; margin: 0 0 6px; overflow-wrap: anywhere; }
   small { display: block; color: var(--c-texte-doux); font-weight: 700; }
   .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }

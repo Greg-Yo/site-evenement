@@ -37,6 +37,22 @@ export const onRequest = defineMiddleware(async (ctx, next) => {
     return reponse;
   }
 
+  // Photos recalculées par sharp : le CDN de Vercel ne les garde que s'il reçoit un en-tête qui lui est destiné.
+  if (/^\/_image\/?$/.test(chemin)) {
+    const r = await next();
+    if (!r.ok) return r;
+    const cache = 'public, max-age=31536000, immutable';
+    try {
+      r.headers.set('Vercel-CDN-Cache-Control', cache);
+      return r;
+    } catch {
+      // En-têtes immuables : on recopie la réponse.
+      const copie = new Response(r.body, r);
+      copie.headers.set('Vercel-CDN-Cache-Control', cache);
+      return copie;
+    }
+  }
+
   const first = chemin.split('/')[1];
   const hitsLangPage = ctx.routePattern === '/[lang]' || ctx.routePattern.startsWith('/[lang]/');
   if (hitsLangPage && !isLang(first)) return ctx.redirect('/', 302);

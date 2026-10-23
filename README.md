@@ -25,7 +25,7 @@ Les réponses sont enregistrées dans `.data/local.db`. Aucun e-mail n'est réel
 Adresse : `/admin` (par exemple http://localhost:4321/admin en local).
 
 Il faut définir deux variables, dans `.env` en local ou sur Vercel en ligne :
-- `ADMIN_PASSWORD` : le mot de passe de connexion ;
+- `ADMIN_PASSWORD` : le mot de passe de connexion, 12 caractères au moins ;
 - `SESSION_SECRET` : 32 caractères au moins (commande de génération dans [`.env.example`](.env.example)).
 
 Sans elles, l'espace organisateur est désactivé, et la page de connexion l'explique.

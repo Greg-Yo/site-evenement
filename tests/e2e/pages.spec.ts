@@ -17,6 +17,15 @@ test.describe('Accueil', () => {
     await expect(page.locator('.hero img').first()).toHaveAttribute('loading', 'eager');
   });
 
+  test('photos : en-tête de cache pour le CDN de Vercel', async ({ request }) => {
+    const html = await (await request.get('/fr/')).text();
+    const src = html.match(/\/_image\?[^"' ]+/)?.[0];
+    expect(src).toBeTruthy();
+    const res = await request.get(src!.replaceAll('&amp;', '&'));
+    expect(res.status()).toBe(200);
+    expect(res.headers()['vercel-cdn-cache-control']).toBe('public, max-age=31536000, immutable');
+  });
+
   test('version anglaise', async ({ page }) => {
     await page.goto('/en/');
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Coco turns 40');

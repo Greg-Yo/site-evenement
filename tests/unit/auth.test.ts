@@ -15,9 +15,11 @@ const T0 = new Date('2027-01-15T12:00:00Z');
 
 test('configAdmin', () => {
   expect(configAdmin({})).toEqual({ ok: false, probleme: "ADMIN_PASSWORD n'est pas défini : l'espace organisateur est désactivé." });
-  expect(configAdmin({ ADMIN_PASSWORD: 'p', SESSION_SECRET: 'court' }))
+  expect(configAdmin({ ADMIN_PASSWORD: 'onze-carac', SESSION_SECRET: SECRET }))
+    .toEqual({ ok: false, probleme: 'ADMIN_PASSWORD doit contenir au moins 12 caractères.' });
+  expect(configAdmin({ ADMIN_PASSWORD: 'soleil-de-mai', SESSION_SECRET: 'court' }))
     .toEqual({ ok: false, probleme: 'SESSION_SECRET doit contenir au moins 32 caractères.' });
-  expect(configAdmin({ ADMIN_PASSWORD: 'p', SESSION_SECRET: SECRET })).toEqual({ ok: true, motDePasse: 'p', secret: SECRET });
+  expect(configAdmin({ ADMIN_PASSWORD: 'douze-caract', SESSION_SECRET: SECRET })).toEqual({ ok: true, motDePasse: 'douze-caract', secret: SECRET });
 });
 
 test('motDePasseCorrect', () => {

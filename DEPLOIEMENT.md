@@ -60,6 +60,7 @@ Cette adresse sert aux liens des e-mails et au QR code de l'invitation. Si Verce
 3. Donnez au projet le nom choisi à l'étape 3.
 4. Préréglage (« Framework Preset ») : **Astro**.
 5. Commande de compilation (« Build Command ») : `npm run build`.
+   Le site mis en ligne est celui de la branche `main` du dépôt.
 6. Ne cliquez pas encore sur « Deploy » : ajoutez d'abord les variables (étape 5).
 
 Après la création du projet, vérifiez la version de Node : « Settings », puis « Build and Deployment », « Node.js Version » : **22.x**.
@@ -77,7 +78,7 @@ Dans l'écran d'import (section « Environment Variables »), ou plus tard dans 
 | `MAIL_PROVIDER` | `brevo` ou `resend` | Oui |
 | `MAIL_API_KEY` | La clé API du service d'e-mails | Oui |
 | `MAIL_FROM` | L'adresse d'expédition vérifiée | Oui |
-| `ADMIN_PASSWORD` | Le mot de passe de l'espace organisateur, à inventer | Oui |
+| `ADMIN_PASSWORD` | Le mot de passe de l'espace organisateur, à inventer : 12 caractères au moins | Oui |
 | `SESSION_SECRET` | Une suite aléatoire de 32 caractères au moins (voir ci-dessous) | Oui |
 | `RSVP_LIMITE` | Nombre d'envois de formulaire autorisés par adresse IP toutes les 10 minutes (5 par défaut) | Non |
 
@@ -97,7 +98,7 @@ Une variable modifiée plus tard ne s'applique qu'au déploiement suivant (« De
 
 Cliquez sur « Deploy ». La compilation dure quelques minutes.
 
-Si `evenement.yaml` contient une erreur, la compilation échoue. Le journal de Vercel affiche alors « Contenu de l'événement invalide », suivi de la liste des problèmes. Corrigez-les, faites un commit, et Vercel recompile tout seul.
+Si `evenement.yaml` contient une erreur, la compilation échoue. Le journal de Vercel affiche alors « Contenu de l’événement invalide », suivi de la liste des problèmes. Corrigez-les, faites un commit, et Vercel recompile tout seul.
 
 Ensuite, chaque commit envoyé sur GitHub met le site à jour automatiquement.
 
@@ -107,7 +108,7 @@ Ensuite, chaque commit envoyé sur GitHub met le site à jour automatiquement.
 - [ ] Connectez-vous à `/admin` avec `ADMIN_PASSWORD`.
 - [ ] Téléchargez le CSV, le PDF de la liste et le PDF de toutes les invitations.
 - [ ] Dans « Livre d'or », masquez ce message, puis vérifiez qu'il a disparu du site.
-- [ ] Vérifiez qu'aucun bandeau rouge de configuration n'apparaît en haut de l'admin.
+- [ ] Vérifiez qu'aucun bandeau de configuration n'apparaît en haut de l'écran, dans l'admin.
 - [ ] Vérifiez que les photos s'affichent sur `/fr/histoire` et `/fr/programme`.
 
 Ensuite, supprimez votre réponse de test dans l'admin.
@@ -130,11 +131,11 @@ C'est normal après un changement de `ADMIN_PASSWORD` ou de `SESSION_SECRET` : t
 **Une page liste des erreurs de contenu.**
 `evenement.yaml` ou une photo pose problème. La liste donne le nom exact du champ concerné. Corrigez-le en suivant [evenement/LISEZMOI.md](evenement/LISEZMOI.md), puis faites un commit.
 
-**Un bandeau rouge parle des e-mails, en haut de l'admin.**
+**Dans l'admin, un bandeau en haut de l'écran parle des e-mails.**
 La configuration des e-mails est incomplète, et les e-mails ne partent pas. Le bandeau dit quoi corriger : `MAIL_MODE` doit valoir `api`, `MAIL_API_KEY` et `MAIL_FROM` doivent être remplis, `MAIL_PROVIDER` doit valoir `brevo` ou `resend`. Corrigez la variable, puis redéployez. Les invités déjà inscrits peuvent recevoir leur e-mail avec « Renvoyer l'e-mail », dans l'admin.
 
 **« Trop de tentatives : réessayez dans 15 minutes. »**
 Il y a eu 5 mots de passe erronés en 15 minutes depuis votre connexion. Attendez 15 minutes sans réessayer : chaque essai pendant le blocage le prolonge.
 
 **L'admin dit qu'elle est désactivée.**
-`ADMIN_PASSWORD` manque, ou `SESSION_SECRET` fait moins de 32 caractères. Corrigez la variable, puis redéployez.
+`ADMIN_PASSWORD` manque ou fait moins de 12 caractères, ou `SESSION_SECRET` fait moins de 32 caractères. Corrigez la variable, puis redéployez.
