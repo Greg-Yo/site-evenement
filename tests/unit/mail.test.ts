@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, test, vi } from 'vitest';
 import { creerApi, payloadBrevo, payloadResend } from '../../src/lib/mail/api';
+import { getExpediteur, outboxActive, problemeConfigMail } from '../../src/lib/mail/index';
 import { creerOutbox } from '../../src/lib/mail/outbox';
 import type { Message } from '../../src/lib/mail/types';
 
@@ -51,7 +52,7 @@ describe('API', () => {
   });
   test('payload Resend', () => {
     expect(payloadResend(msg, de)).toEqual({
-      from: 'Coco a 40 ans <fete@exemple.fr>', to: ['camille@exemple.fr'], subject: 'Ton invitation',
+      from: '"Coco a 40 ans" <fete@exemple.fr>', to: ['camille@exemple.fr'], subject: 'Ton invitation',
       html: '<p>Bonjour</p>', text: 'Bonjour', attachments: [{ filename: 'Invitation-Camille.pdf', content: 'JVBERg==' }],
     });
   });
@@ -68,5 +69,49 @@ describe('API', () => {
     }));
     const h = vi.fn(async () => new Response('quota', { status: 429 }));
     await expect(creerApi({ fournisseur: 'brevo', cle: 'k', de, fetch: h }).envoyer(msg)).rejects.toThrow(/429/);
+  });
+
+  test('creerApi transmet un signal d’abandon (délai maximal)', async () => {
+    let init: RequestInit | undefined;
+    const f = (async (_u: string, i: RequestInit) => { init = i; return new Response('{}', { status: 201 }); }) as unknown as typeof fetch;
+    await creerApi({ fournisseur: 'brevo', cle: 'k', de, fetch: f }).envoyer(msg);
+    expect(init?.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  test('erreur du fournisseur : statut et code seulement, jamais le corps', async () => {
+    const f = (async () => new Response(JSON.stringify({ code: 'invalid_parameter', message: 'camille@exemple.fr est invalide' }), { status: 400 })) as unknown as typeof fetch;
+    await expect(creerApi({ fournisseur: 'brevo', cle: 'k', de, fetch: f }).envoyer(msg))
+      .rejects.toThrow(/^Envoi d'e-mail refusé par brevo : HTTP 400 \(invalid_parameter\)$/);
+  });
+
+  test('erreur sans corps JSON : statut seul', async () => {
+    const f = (async () => new Response('<html>oops camille@exemple.fr</html>', { status: 502 })) as unknown as typeof fetch;
+    await expect(creerApi({ fournisseur: 'resend', cle: 'k', de, fetch: f }).envoyer(msg))
+      .rejects.toThrow(/^Envoi d'e-mail refusé par resend : HTTP 502$/);
+  });
+
+  test('Resend : nom d’expéditeur entre guillemets, guillemets et barres obliques inverses retirés', () => {
+    expect(payloadResend(msg, { email: 'a@b.fr', nom: 'Coco, "40" \\ ans' }).from).toBe('"Coco, 40  ans" <a@b.fr>');
+  });
+});
+
+describe('configuration', () => {
+  test('problemeConfigMail', () => {
+    expect(problemeConfigMail({})).toBeNull();
+    expect(problemeConfigMail({ VERCEL: '1' })).toBe('En ligne, MAIL_MODE doit valoir « api » : sinon les e-mails ne partent pas.');
+    expect(problemeConfigMail({ VERCEL: '1', MAIL_MODE: 'outbox' })).toBe('En ligne, MAIL_MODE doit valoir « api » : sinon les e-mails ne partent pas.');
+    expect(problemeConfigMail({ MAIL_MODE: 'api', MAIL_FROM: 'a@b.fr' })).toBe('MAIL_MODE=api exige MAIL_API_KEY et MAIL_FROM.');
+    expect(problemeConfigMail({ MAIL_MODE: 'api', MAIL_API_KEY: 'k', MAIL_FROM: 'a@b.fr', MAIL_PROVIDER: 'sendgrid' })).toBe('MAIL_PROVIDER doit valoir « brevo » ou « resend ».');
+    expect(problemeConfigMail({ VERCEL: '1', MAIL_MODE: 'api', MAIL_API_KEY: 'k', MAIL_FROM: 'a@b.fr' })).toBeNull();
+  });
+
+  test('getExpediteur refuse une configuration en erreur', () => {
+    expect(() => getExpediteur('Coco', { VERCEL: '1' })).toThrow('MAIL_MODE doit valoir « api »');
+  });
+
+  test('outboxActive', () => {
+    expect(outboxActive({})).toBe(true);
+    expect(outboxActive({ MAIL_MODE: 'api' })).toBe(false);
+    expect(outboxActive({ VERCEL: '1' })).toBe(false);
   });
 });

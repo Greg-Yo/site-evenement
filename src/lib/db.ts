@@ -1,4 +1,4 @@
-import { createClient, type Client, type Row } from '@libsql/client';
+import type { Client, Row } from '@libsql/client';
 import { randomBytes } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
 import type { Lang } from './event';
@@ -9,6 +9,8 @@ export type Reponse = {
   creeLe: string; modifieLe: string;
 };
 export type NouvelleReponse = Pick<Reponse, 'langue' | 'vient' | 'nom' | 'email' | 'telephone' | 'accompagnants' | 'moments' | 'message'>;
+
+export type MessageAdmin = { id: number; nom: string; message: string; masque: boolean; creeLe: string };
 
 export class ErreurDoublon extends Error {
   constructor() { super('Une réponse existe déjà pour cette adresse e-mail'); this.name = 'ErreurDoublon'; }
@@ -100,6 +102,40 @@ export class Db {
     return res.rows.map((r) => ({ nom: String(r.nom), message: String(r.message), creeLe: String(r.cree_le) }));
   }
 
+  async toutes(): Promise<Reponse[]> {
+    const res = await this.client.execute('SELECT * FROM reponses ORDER BY cree_le DESC, id DESC');
+    return res.rows.map(versReponse);
+  }
+
+  async parId(id: number): Promise<Reponse | null> {
+    const res = await this.client.execute({ sql: 'SELECT * FROM reponses WHERE id = ?', args: [id] });
+    return res.rows[0] ? versReponse(res.rows[0]) : null;
+  }
+
+  async supprimer(id: number): Promise<boolean> {
+    const res = await this.client.execute({ sql: 'DELETE FROM reponses WHERE id = ?', args: [id] });
+    return res.rowsAffected > 0;
+  }
+
+  async masquerMessage(id: number, masque: boolean): Promise<boolean> {
+    const res = await this.client.execute({ sql: 'UPDATE reponses SET message_masque = ? WHERE id = ?', args: [masque ? 1 : 0, id] });
+    return res.rowsAffected > 0;
+  }
+
+  async supprimerMessage(id: number): Promise<boolean> {
+    const res = await this.client.execute({ sql: 'UPDATE reponses SET message = NULL, message_masque = 0 WHERE id = ?', args: [id] });
+    return res.rowsAffected > 0;
+  }
+
+  async messages(): Promise<MessageAdmin[]> {
+    const res = await this.client.execute(
+      `SELECT id, nom, message, message_masque, cree_le FROM reponses
+       WHERE message IS NOT NULL AND message <> '' ORDER BY cree_le DESC, id DESC`);
+    return res.rows.map((r) => ({
+      id: Number(r.id), nom: String(r.nom), message: String(r.message), masque: Number(r.message_masque) === 1, creeLe: String(r.cree_le),
+    }));
+  }
+
   async ajouterTentative(cle: string, maintenant: Date): Promise<void> {
     await this.client.execute({ sql: 'INSERT INTO limites (cle, horodatage) VALUES (?, ?)', args: [cle, maintenant.toISOString()] });
   }
@@ -117,20 +153,29 @@ export class Db {
   }
 }
 
+/** Client natif pour un fichier local ou la mémoire, client web (HTTP) pour une base distante. */
+export function clientPour(url: string): 'natif' | 'web' {
+  return url.startsWith('file:') || url === ':memory:' ? 'natif' : 'web';
+}
+
 export async function openDb(url: string, authToken?: string): Promise<Db> {
   if (url.startsWith('file:')) {
     const chemin = url.slice('file:'.length);
     const dossier = chemin.includes('/') ? chemin.slice(0, chemin.lastIndexOf('/')) : '';
     if (dossier) mkdirSync(dossier, { recursive: true });
   }
+  // Import dynamique : en ligne, le module natif n'est jamais chargé.
+  const { createClient } = clientPour(url) === 'natif' ? await import('@libsql/client') : await import('@libsql/client/web');
   const client = createClient({ url, authToken });
-  for (const sql of SCHEMA) await client.execute(sql);
+  await client.batch(SCHEMA, 'write');
   return new Db(client);
 }
 
 let instance: Promise<Db> | undefined;
 
 export function getDb(): Promise<Db> {
+  // Sans cette vérification, le repli sur un fichier local échoue en ligne (système de fichiers en lecture seule).
+  if (process.env.VERCEL && !process.env.DATABASE_URL) throw new Error('En ligne, DATABASE_URL est obligatoire (base Turso).');
   instance ??= openDb(process.env.DATABASE_URL || 'file:.data/local.db', process.env.DATABASE_TOKEN || undefined)
     .catch((e) => { instance = undefined; throw e; });
   return instance;

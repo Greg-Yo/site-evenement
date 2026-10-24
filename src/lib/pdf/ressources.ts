@@ -12,8 +12,21 @@ export function polices(): Polices {
 
 const photos = import.meta.glob<string>('/evenement/photos/*.{jpg,jpeg,png,webp,JPG,JPEG,PNG,WEBP}', { query: '?inline', import: 'default' });
 
+/** Conversions déjà faites (ou en cours) par chemin : la même photo sert à chaque invitation. */
+const cache = new Map<string, Promise<Uint8Array | null>>();
+
 /** Photo de l'événement, réduite à 1 200 px de large et convertie en JPEG (seul format accepté avec le PNG par pdf-lib). */
-export async function photoJpeg(chemin: string): Promise<Uint8Array | null> {
+export function photoJpeg(chemin: string): Promise<Uint8Array | null> {
+  let p = cache.get(chemin);
+  if (!p) {
+    cache.set(chemin, (p = convertir(chemin)));
+    // Un échec n'est pas retenu : l'appel suivant réessaie.
+    p.catch(() => { if (cache.get(chemin) === p) cache.delete(chemin); });
+  }
+  return p;
+}
+
+async function convertir(chemin: string): Promise<Uint8Array | null> {
   const cle = Object.keys(photos).find((k) => k.toLowerCase() === `/evenement/${chemin}`.toLowerCase());
   if (!cle) return null;
   const brut = decoder(await photos[cle]());

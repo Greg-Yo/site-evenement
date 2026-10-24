@@ -3,6 +3,8 @@ import type { EventConfig } from './event';
 type Theme = EventConfig['theme'];
 const SOLEIL = { principale: '#ec5e27', fond: '#fdfdf1', texte: '#3a2419', douce: '#fbd7c2' };
 const POLICES = { titres: 'Caveat', texte: 'Nunito' };
+// Graisses connues des polices par défaut ; les autres sont demandées sans graisse imposée.
+const POIDS: Record<string, string> = { Caveat: '500;700', Nunito: '400;600;800' };
 
 const rgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
 const hex = (c: number[]) => '#' + c.map((v) => Math.round(Math.max(0, Math.min(255, v))).toString(16).padStart(2, '0')).join('');
@@ -61,6 +63,9 @@ export function themeVars(theme: Theme): string {
 
 export function fontsHref(theme: Theme): string {
   const p = { ...POLICES, ...theme.polices };
-  const fam = (name: string, weights: string) => `family=${name.trim().replace(/ /g, '+')}:wght@${weights}`;
-  return `https://fonts.googleapis.com/css2?${fam(p.titres, '500;700')}&${fam(p.texte, '400;600;800')}&display=swap`;
+  const fam = (name: string) => {
+    const nom = name.trim();
+    return `family=${nom.replace(/ +/g, '+')}${POIDS[nom] ? `:wght@${POIDS[nom]}` : ''}`;
+  };
+  return `https://fonts.googleapis.com/css2?${fam(p.titres)}&${fam(p.texte)}&display=swap`;
 }

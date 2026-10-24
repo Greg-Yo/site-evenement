@@ -1,0 +1,46 @@
+---
+import Admin from '../../../../layouts/Admin.astro';
+import RsvpForm from '../../../../components/RsvpForm.astro';
+import { idDepuisParam } from '../../../../lib/admin/reponses';
+import { CHAMPS_VIDES, lireFormulaire, type ChampsRsvp, type ErreursRsvp } from '../../../../lib/rsvp';
+import { modifierParAdmin } from '../../../../lib/rsvp-service';
+import { getDeps } from '../../../../lib/services';
+
+const deps = await getDeps();
+const id = idDepuisParam(Astro.params.id);
+const existante = id === null ? null : await deps.db.parId(id);
+let champs: ChampsRsvp = existante
+  ? { ...CHAMPS_VIDES, vient: existante.vient, nom: existante.nom, email: existante.email, telephone: existante.telephone ?? '',
+      accompagnants: existante.accompagnants, moments: existante.moments, message: existante.message ?? '' }
+  : CHAMPS_VIDES;
+let erreurs: ErreursRsvp = {};
+if (existante && Astro.request.method === 'POST') {
+  let envoye: ChampsRsvp = CHAMPS_VIDES;
+  try {
+    envoye = lireFormulaire(await Astro.request.formData());
+  } catch { /* corps illisible : la validation renverra « invalide » */ }
+  champs = { ...envoye, email: existante.email, piege: '' };
+  const res = await modifierParAdmin(existante.id, champs, deps);
+  if (res.type === 'ok') return Astro.redirect('/admin?ok=modifie', 303);
+  if (res.type === 'introuvable') return Astro.redirect('/admin?ok=introuvable', 303);
+  if (res.type === 'invalide') erreurs = res.erreurs;
+}
+if (!existante) Astro.response.status = 404;
+---
+<Admin titre="Modifier une réponse" actif="reponses">
+  <h1>Modifier une réponse</h1>
+  {existante ? (
+    <div class="etroit">
+      <RsvpForm lang="fr" ev={deps.ev} champs={champs} erreurs={erreurs} libelleEnvoyer="Enregistrer" emailVerrouille />
+    </div>
+  ) : (
+    <p class="vide">Cette réponse n'existe plus.</p>
+  )}
+  <p><a href="/admin">Retour aux réponses</a></p>
+</Admin>
+<style>
+  h1 { margin: 0 0 16px; font-size: 1.6rem; }
+  .etroit { max-width: 720px; }
+  .vide { background: #fff; border-radius: 14px; padding: 18px; margin: 0 0 16px; }
+  a { color: var(--c-texte); font-weight: 700; }
+</style>

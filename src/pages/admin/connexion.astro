@@ -1,0 +1,71 @@
+---
+import '../../styles/global.css';
+import { cleSession, configAdmin, creerSession, DUREE_SESSION_MS, NOM_COOKIE, sessionValide, tenterConnexion } from '../../lib/auth';
+import { getDb } from '../../lib/db';
+import { getEvent } from '../../lib/load-event';
+import { fontsHref, themeVars } from '../../lib/theme';
+
+const ev = getEvent();
+const cfg = configAdmin();
+let erreur: string | null = null;
+if (cfg.ok && Astro.request.method === 'GET' && sessionValide(Astro.cookies.get(NOM_COOKIE)?.value, cleSession(cfg), new Date())) {
+  return Astro.redirect('/admin', 303);
+}
+if (cfg.ok && Astro.request.method === 'POST') {
+  let saisi = '';
+  try {
+    const v = (await Astro.request.formData()).get('mot_de_passe');
+    saisi = typeof v === 'string' ? v : '';
+  } catch {
+    saisi = '';
+  }
+  let ip = 'inconnue';
+  try { ip = Astro.clientAddress; } catch { console.warn('Adresse IP indisponible : limite de connexion partagée par tous les visiteurs'); }
+  const resultat = await tenterConnexion(saisi, ip, cfg, await getDb(), new Date());
+  if (resultat === 'ok') {
+    Astro.cookies.set(NOM_COOKIE, creerSession(cleSession(cfg), new Date()), {
+      httpOnly: true, sameSite: 'lax', secure: Astro.url.protocol === 'https:' || !!process.env.VERCEL, path: '/', maxAge: DUREE_SESSION_MS / 1000,
+    });
+    return Astro.redirect('/admin', 303);
+  }
+  erreur = resultat === 'bloque' ? 'Trop de tentatives : réessayez dans 15 minutes.' : 'Mot de passe incorrect.';
+}
+---
+<!doctype html>
+<html lang="fr" style={themeVars(ev.theme)}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Connexion · admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href={fontsHref(ev.theme)} />
+  </head>
+  <body>
+    <main class="fond">
+      <div class="carte">
+        <h1 class="hand">☀ Espace organisateur</h1>
+        {cfg.ok ? (
+          <form method="post">
+            {erreur && <p class="erreur" role="alert">{erreur}</p>}
+            <label for="mot_de_passe">Mot de passe</label>
+            <input id="mot_de_passe" name="mot_de_passe" type="password" required autocomplete="current-password" />
+            <button class="btn btn-plein" type="submit">Se connecter</button>
+          </form>
+        ) : (
+          <p class="erreur">{cfg.probleme}</p>
+        )}
+      </div>
+    </main>
+  </body>
+</html>
+<style>
+  .fond { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--c-principale); padding: 40px 16px; }
+  .carte { background: var(--c-fond); border-radius: 20px; padding: 28px 30px; width: min(340px, 100%); text-align: center; box-shadow: 0 10px 26px rgba(0,0,0,.2); }
+  h1 { font-size: 2.4rem; color: var(--c-principale-fonce); margin: 0 0 16px; }
+  label { display: block; text-align: left; font-weight: 800; }
+  input { width: 100%; border: 2px solid var(--c-texte-doux); border-radius: 10px; padding: 11px; font: inherit; margin: 6px 0 16px; background: #fff; }
+  .btn { width: 100%; }
+  .erreur { background: var(--c-douce); border-radius: 12px; padding: 10px 14px; font-weight: 700; margin: 0 0 14px; }
+</style>

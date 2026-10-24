@@ -1,0 +1,56 @@
+---
+import Admin from '../../layouts/Admin.astro';
+import { messageFlash } from '../../lib/admin/reponses';
+import { horodatageLocal } from '../../lib/rsvp';
+import { getDeps } from '../../lib/services';
+
+const deps = await getDeps();
+const messages = await deps.db.messages();
+const flash = messageFlash(Astro.url.searchParams.get('ok'));
+// JJ/MM, dans le fuseau de l'événement.
+const jour = (iso: string) => horodatageLocal(iso, deps.ev.evenement.date_debut).slice(0, 5);
+---
+<Admin titre="Livre d’or" actif="livre-dor">
+  <h1>Livre d’or</h1>
+  <p class="sous-titre">Les messages s'affichent tout de suite sur le site ; masquez ou supprimez-les si besoin.</p>
+  {flash && <p class={`flash ${flash.type}`} role={flash.type === 'ok' ? 'status' : 'alert'}>{flash.texte}</p>}
+  {messages.length === 0 ? (
+    <p class="vide">Aucun message pour l'instant.</p>
+  ) : (
+    <ul class="messages">
+      {messages.map((m) => (
+        <li class:list={{ masque: m.masque }}>
+          <p class="texte">« {m.message} »</p>
+          <small>{m.nom} · {jour(m.creeLe)}{m.masque && ' · masqué'}</small>
+          <div class="actions">
+            <form method="post" action={`/api/admin/messages/${m.id}/masquer`}>
+              <input type="hidden" name="masque" value={m.masque ? '0' : '1'} />
+              <button class="btn btn-contour btn-petit" type="submit">{m.masque ? 'Afficher' : 'Masquer'}</button>
+            </form>
+            <form method="post" action={`/api/admin/messages/${m.id}/supprimer`}>
+              <button class="btn btn-contour btn-petit" type="submit">Supprimer</button>
+            </form>
+          </div>
+        </li>
+      ))}
+    </ul>
+  )}
+</Admin>
+<style>
+  h1 { margin: 0 0 6px; font-size: 1.6rem; }
+  .sous-titre { margin: 0 0 16px; color: var(--c-texte-doux); }
+  .flash { border-radius: 14px; padding: 14px 18px; font-weight: 700; margin: 0 0 18px; }
+  .flash.ok { background: #dff3e3; color: #1e6b32; }
+  .flash.erreur { background: #f6dede; color: #8d2323; }
+  .vide { background: #fff; border-radius: 14px; padding: 18px; text-align: center; margin: 0; }
+  .messages { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+  .messages li { background: #fff; border-radius: 14px; padding: 14px 16px; box-shadow: 0 3px 10px rgba(58,36,25,.07); }
+  /* Pas d'opacité : le texte garde un contraste d'au moins 4.5:1. */
+  .messages li.masque { background: #f5ebe2; border: 2px dashed var(--c-texte-doux); box-shadow: none; }
+  .masque .texte { color: var(--c-texte-doux); }
+  .texte { font-family: var(--f-titres); font-size: 1.4rem; line-height: 1.2; margin: 0 0 6px; overflow-wrap: anywhere; }
+  small { display: block; color: var(--c-texte-doux); font-weight: 700; }
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .actions form { margin: 0; }
+  .actions button { box-shadow: none; }
+</style>

@@ -1,0 +1,38 @@
+---
+import Admin from '../../../../layouts/Admin.astro';
+import { idDepuisParam } from '../../../../lib/admin/reponses';
+import { getDeps } from '../../../../lib/services';
+
+const deps = await getDeps();
+const id = idDepuisParam(Astro.params.id);
+if (Astro.request.method === 'POST') {
+  const supprimee = id !== null && (await deps.db.supprimer(id));
+  return Astro.redirect(`/admin?ok=${supprimee ? 'supprime' : 'introuvable'}`, 303);
+}
+const r = id === null ? null : await deps.db.parId(id);
+if (!r) Astro.response.status = 404;
+---
+<Admin titre="Supprimer une réponse" actif="reponses">
+  <h1>Supprimer une réponse</h1>
+  {r ? (
+    <div class="carte">
+      <p>Supprimer la réponse de {r.nom} ? Le message du livre d'or sera supprimé aussi. Cette action est définitive.</p>
+      <form method="post">
+        <button class="btn btn-plein btn-petit" type="submit">Supprimer définitivement</button>
+        <a href="/admin">Annuler</a>
+      </form>
+    </div>
+  ) : (
+    <>
+      <p class="carte">Cette réponse n'existe plus.</p>
+      <p><a href="/admin">Retour aux réponses</a></p>
+    </>
+  )}
+</Admin>
+<style>
+  h1 { margin: 0 0 16px; font-size: 1.6rem; }
+  .carte { background: #fff; border-radius: 14px; padding: 18px; margin: 0 0 16px; }
+  .carte p { margin: 0 0 14px; }
+  form { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; }
+  a { color: var(--c-texte); font-weight: 700; }
+</style>

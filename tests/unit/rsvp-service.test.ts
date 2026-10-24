@@ -4,7 +4,7 @@ import { openDb, type Db } from '../../src/lib/db';
 import { parseEvent } from '../../src/lib/event';
 import type { Expediteur, Message } from '../../src/lib/mail/types';
 import { CHAMPS_VIDES, type ChampsRsvp } from '../../src/lib/rsvp';
-import { limiteDepuisEnv, modifier, nomFichierInvitation, soumettre, type Deps } from '../../src/lib/rsvp-service';
+import { limiteDepuisEnv, modifier, modifierParAdmin, nomFichierInvitation, renvoyerConfirmation, soumettre, type Deps } from '../../src/lib/rsvp-service';
 
 const ev = parseEvent(readFileSync('evenement/evenement.yaml', 'utf8'), readdirSync('evenement/photos').map((f) => `photos/${f}`));
 const champs: ChampsRsvp = { ...CHAMPS_VIDES, vient: true, nom: 'Camille Martin', email: 'camille@exemple.fr', moments: ['diner'], message: 'Bravo' };
@@ -22,6 +22,13 @@ beforeEach(async () => {
 });
 
 describe('soumettre', () => {
+  test('échec d’envoi puis échec de la base : pas d’exception, emailEnvoye = false', async () => {
+    deps.expediteur = { envoyer: async () => { throw new Error('panne'); } };
+    const marquer = vi.spyOn(db, 'marquerEmailEnvoye').mockRejectedValue(new Error('base indisponible'));
+    const r = await soumettre(champs, 'fr', '1.1.1.1', deps);
+    expect(r.type === 'ok' && r.emailEnvoye).toBe(false);
+    marquer.mockRestore();
+  });
   test('vient : enregistre, envoie confirmation + PDF, marque l’e-mail envoyé', async () => {
     const r = await soumettre(champs, 'fr', '1.1.1.1', deps);
     expect(r.type).toBe('ok');
@@ -95,6 +102,12 @@ describe('soumettre', () => {
 });
 
 describe('modifier', () => {
+  test('modifier : réponse supprimée entre la lecture et l’écriture → introuvable', async () => {
+    const r = await soumettre(champs, 'fr', '1.1.1.1', deps);
+    if (r.type !== 'ok') throw new Error();
+    vi.spyOn(db, 'modifier').mockResolvedValueOnce(null);
+    expect(await modifier(r.reponse.jeton, champs, 'fr', deps)).toEqual({ type: 'introuvable' });
+  });
   test('met à jour et renvoie une confirmation ; l’e-mail ne change pas', async () => {
     const r = await soumettre(champs, 'fr', '1.1.1.1', deps);
     if (r.type !== 'ok') throw new Error();
@@ -109,6 +122,34 @@ describe('modifier', () => {
     const r = await soumettre(champs, 'fr', '1.1.1.1', deps);
     if (r.type !== 'ok') throw new Error();
     expect(await modifier(r.reponse.jeton, champs, 'fr', { ...deps, maintenant: () => APRES })).toEqual({ type: 'ferme' });
+  });
+});
+
+describe('actions de l’organisateur', () => {
+  test('renvoyerConfirmation : ok, échec, introuvable', async () => {
+    const r = await soumettre(champs, 'fr', '1.1.1.1', deps);
+    if (r.type !== 'ok') throw new Error();
+    expect(await renvoyerConfirmation(r.reponse.id, deps)).toBe('ok');
+    expect(envoyes).toHaveLength(2);
+    expect(envoyes[1].piecesJointes).toHaveLength(1);
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    deps.expediteur = { envoyer: async () => { throw new Error('panne'); } };
+    expect(await renvoyerConfirmation(r.reponse.id, deps)).toBe('echec');
+    expect((await db.parId(r.reponse.id))?.emailEnvoye).toBe(false);
+    expect(await renvoyerConfirmation(9999, deps)).toBe('introuvable');
+    vi.restoreAllMocks();
+  });
+
+  test('modifierParAdmin : après la date limite, sans e-mail, e-mail et langue conservés', async () => {
+    const r = await soumettre(champs, 'en', '1.1.1.1', deps);
+    if (r.type !== 'ok') throw new Error();
+    deps.maintenant = () => APRES;
+    const m = await modifierParAdmin(r.reponse.id, { ...champs, nom: 'Camille Roy', email: 'pirate@x.fr' }, deps);
+    expect(m.type === 'ok' && m.emailEnvoye).toBe(false);
+    const lue = await db.parId(r.reponse.id);
+    expect(lue).toMatchObject({ nom: 'Camille Roy', email: 'camille@exemple.fr', langue: 'en' });
+    expect(envoyes).toHaveLength(1);
+    expect(await modifierParAdmin(9999, champs, deps)).toEqual({ type: 'introuvable' });
   });
 });
 

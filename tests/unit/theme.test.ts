@@ -41,8 +41,9 @@ describe('themeVars', () => {
   });
 });
 
-test('fontsHref construit l’URL Google Fonts', () => {
-  expect(fontsHref({ couleurs: {}, polices: { texte: 'Open Sans' } })).toBe(
-    'https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Open+Sans:wght@400;600;800&display=swap',
-  );
+test('fontsHref : graisses connues pour Caveat et Nunito, aucune imposée sinon, espaces encodés', () => {
+  expect(fontsHref({ couleurs: {}, polices: {} }))
+    .toBe('https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Nunito:wght@400;600;800&display=swap');
+  expect(fontsHref({ couleurs: {}, polices: { titres: 'Great Vibes', texte: 'Open Sans' } }))
+    .toBe('https://fonts.googleapis.com/css2?family=Great+Vibes&family=Open+Sans&display=swap');
 });

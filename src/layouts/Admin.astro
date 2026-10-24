@@ -1,0 +1,77 @@
+---
+import '../styles/global.css';
+import { t } from '../lib/event';
+import { getEvent } from '../lib/load-event';
+import { outboxActive, problemeConfigMail } from '../lib/mail/index';
+import { fontsHref, themeVars } from '../lib/theme';
+interface Props { titre: string; actif: 'reponses' | 'livre-dor' | 'outbox' }
+const { titre, actif } = Astro.props;
+const ev = getEvent();
+const logo = ev.site.logo ?? t(ev.site.titre, 'fr');
+const probleme = problemeConfigMail();
+const liens = [
+  { id: 'reponses', href: '/admin', icone: '📋', libelle: 'Réponses' },
+  { id: 'livre-dor', href: '/admin/livre-dor', icone: '💬', libelle: 'Livre d’or' },
+  ...(outboxActive() ? [{ id: 'outbox', href: '/admin/outbox', icone: '📨', libelle: 'Boîte d’envoi (test)' }] : []),
+];
+---
+<!doctype html>
+<html lang="fr" style={themeVars(ev.theme)}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>{`${titre} · admin`}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href={fontsHref(ev.theme)} />
+  </head>
+  <body>
+    <a class="sr-only" href="#contenu">Aller au contenu</a>
+    <div class="admin">
+      <nav class="side" aria-label="Menu de l'administration">
+        <p class="logo hand"><span aria-hidden="true">☀</span>{' '}{logo} · admin</p>
+        <ul>
+          {liens.map((l) => (
+            <li><a href={l.href} aria-current={l.id === actif ? 'page' : undefined}><span aria-hidden="true">{l.icone}</span>{' '}{l.libelle}</a></li>
+          ))}
+          <li class="sep"><a href="/"><span aria-hidden="true">↗</span>{' '}Voir le site</a></li>
+          <li>
+            <form method="post" action="/admin/deconnexion">
+              <button type="submit"><span aria-hidden="true">⎋</span>{' '}Déconnexion</button>
+            </form>
+          </li>
+        </ul>
+      </nav>
+      <main id="contenu">
+        {probleme && <p class="bandeau" role="alert">{probleme}</p>}
+        <slot />
+      </main>
+    </div>
+  </body>
+</html>
+<style>
+  .admin { display: grid; grid-template-columns: 220px minmax(0, 1fr); min-height: 100vh; }
+  .side { background: var(--c-texte); color: var(--c-fond); padding: 20px 0; }
+  .logo { font-size: 1.7rem; line-height: 1.1; margin: 0; padding: 0 22px 18px; }
+  .side ul { list-style: none; margin: 0; padding: 0; }
+  .side a, .side button {
+    display: block; width: 100%; padding: 11px 22px; color: var(--c-fond); font: inherit; font-weight: 700; font-size: .95rem;
+    text-decoration: none; text-align: left; background: none; border: 0; cursor: pointer;
+  }
+  .side a:hover, .side button:hover { text-decoration: underline; }
+  .side a[aria-current='page'] { background: var(--c-principale-fonce); }
+  .side .sep { margin-top: 30px; }
+  .side :focus-visible { outline-color: var(--c-fond); outline-offset: -3px; }
+  main { padding: 24px 28px; min-width: 0; }
+  .bandeau { background: var(--c-douce); border-radius: 14px; padding: 14px 18px; font-weight: 700; margin: 0 0 18px; }
+  @media (max-width: 760px) {
+    .admin { grid-template-columns: 1fr; min-height: 0; }
+    .side { padding: 12px 0 0; }
+    .logo { padding: 0 16px 8px; font-size: 1.5rem; }
+    .side ul { display: flex; flex-wrap: wrap; }
+    .side a, .side button { padding: 10px 14px; }
+    .side .sep { margin-top: 0; }
+    main { padding: 18px 16px; }
+  }
+</style>

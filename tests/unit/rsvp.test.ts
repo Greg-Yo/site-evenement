@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { CHAMPS_VIDES, lireFormulaire, nombrePersonnes, rsvpOuvert, valider, type ChampsRsvp } from '../../src/lib/rsvp';
+import { CHAMPS_VIDES, horodatageLocal, lireFormulaire, nombrePersonnes, rsvpOuvert, valider, type ChampsRsvp } from '../../src/lib/rsvp';
 
 const IDS = ['accueil', 'diner', 'soiree', 'brunch'];
 const ok: ChampsRsvp = { ...CHAMPS_VIDES, vient: true, nom: 'Camille Martin', email: 'camille@exemple.fr', moments: ['diner'] };
@@ -63,4 +63,8 @@ describe('rsvpOuvert (fuseau de l’événement)', () => {
 test('nombrePersonnes', () => {
   expect(nombrePersonnes({ vient: true, accompagnants: ['a', 'b'] })).toBe(3);
   expect(nombrePersonnes({ vient: false, accompagnants: ['a'] })).toBe(0);
+});
+
+test('horodatageLocal', () => {
+  expect(horodatageLocal('2027-01-15T22:30:00.000Z', '2027-06-14T16:00:00+02:00')).toBe('16/01/2027 00:30');
 });

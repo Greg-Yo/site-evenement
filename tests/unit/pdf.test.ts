@@ -1,10 +1,10 @@
 import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
-import { PDFDocument } from 'pdf-lib';
+import { PDFDict, PDFDocument, PDFName, PDFRawStream } from 'pdf-lib';
 import sharp from 'sharp';
 import { beforeAll, describe, expect, test } from 'vitest';
-import { parseEvent } from '../../src/lib/event';
+import { parseEvent, type Lang } from '../../src/lib/event';
 import fontkit from '@pdf-lib/fontkit';
-import { BAS_CONTENU, couper, dessinable, OPTIONS_TITRE, genererInvitation, mesurerInvitation, tronquer, type Polices } from '../../src/lib/pdf/invitation';
+import { BAS_CONTENU, couper, dessinable, OPTIONS_TITRE, genererInvitation, genererInvitations, mesurerInvitation, tronquer, type Polices } from '../../src/lib/pdf/invitation';
 
 const ev = parseEvent(readFileSync('evenement/evenement.yaml', 'utf8'), readdirSync('evenement/photos').map((f) => `photos/${f}`));
 const polices: Polices = {
@@ -112,4 +112,35 @@ describe('Caveat sans variantes contextuelles', () => {
     writeFileSync('.data/apercu-normal.pdf', await genererInvitation({ ev, reponse: normal, photo, polices, urlQr: 'http://localhost:4321/fr/programme' }));
     writeFileSync('.data/apercu-dix.pdf', await genererInvitation({ ev, reponse: dix, photo, polices, urlQr: 'http://localhost:4321/fr/programme' }));
   }, 20_000);
+});
+
+const compter = (doc: PDFDocument, cle: string, valeur?: string) => doc.context.enumerateIndirectObjects()
+  .filter(([, o]) => o instanceof PDFRawStream && (valeur ? o.dict.get(PDFName.of(cle)) === PDFName.of(valeur) : o.dict.has(PDFName.of(cle)))).length;
+
+describe('genererInvitations', () => {
+  test('genererInvitations : une page A5 par invité', async () => {
+    const octets = await genererInvitations({ ev, reponses: [reponse, { ...reponse, nom: 'Thomas' }, { ...reponse, nom: 'Emma', langue: 'en' }],
+      photo, polices, urlQr: (l) => `http://localhost:4321/${l}/programme` });
+    const doc = await PDFDocument.load(octets);
+    expect(doc.getPageCount()).toBe(3);
+    expect(doc.getPages().every((p) => Math.round(p.getWidth()) === 420)).toBe(true);
+  });
+
+  test('genererInvitations : photo et polices intégrées une seule fois, 60 invités en moins de 10 s', async () => {
+    const debut = Date.now();
+    const reponses = Array.from({ length: 60 }, (_, i) => ({ ...reponse, nom: `Invité ${i}`, langue: (i % 2 ? 'en' : 'fr') as Lang }));
+    const doc = await PDFDocument.load(await genererInvitations({ ev, reponses, photo, polices, urlQr: (l) => `https://site.fr/${l}/programme` }));
+    expect(Date.now() - debut).toBeLessThan(10_000);
+    expect(doc.getPageCount()).toBe(60);
+    expect(compter(doc, 'Subtype', 'Image')).toBe(3); // la photo + un QR code par langue
+    const fichiersPolice = new Set(doc.context.enumerateIndirectObjects()
+      .map(([, o]) => (o instanceof PDFDict ? o.get(PDFName.of('FontFile2')) : undefined))
+      .filter(Boolean).map(String)).size;
+    expect(fichiersPolice).toBe(3);                   // 3 fichiers de police TrueType, quel que soit le nombre d'invités
+  }, 20_000);
+
+  test('genererInvitations : aucun invité → une page', async () => {
+    const doc = await PDFDocument.load(await genererInvitations({ ev, reponses: [], photo, polices, urlQr: () => 'https://site.fr' }));
+    expect(doc.getPageCount()).toBe(1);
+  });
 });

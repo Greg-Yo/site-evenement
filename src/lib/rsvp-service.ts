@@ -48,7 +48,7 @@ async function envoyerConfirmation(r: Reponse, deps: Deps): Promise<boolean> {
     return true;
   } catch (e) {
     console.error('Envoi de la confirmation impossible :', e);
-    await deps.db.marquerEmailEnvoye(r.id, false);
+    await deps.db.marquerEmailEnvoye(r.id, false).catch((e2) => console.error("Marquage de l'e-mail non envoyé impossible :", e2));
     return false;
   }
 }
@@ -92,6 +92,26 @@ export async function modifier(jeton: string, champs: ChampsRsvp, langue: Lang, 
   const v = valider({ ...champs, email: existante.email }, deps.ev.moments.map((m) => m.id), langue);
   if (!v.ok) return { type: 'invalide', erreurs: v.erreurs };
   const { email: _ignore, ...sansEmail } = v.data;
-  const reponse = (await deps.db.modifier(jeton, sansEmail, maintenant))!;
+  const reponse = await deps.db.modifier(jeton, sansEmail, maintenant);
+  if (!reponse) return { type: 'introuvable' };
   return { type: 'ok', reponse, emailEnvoye: await envoyerConfirmation(reponse, deps) };
+}
+
+/** Renvoi de la confirmation par l'organisateur, sans limite ni date limite. */
+export async function renvoyerConfirmation(id: number, deps: Deps): Promise<'ok' | 'echec' | 'introuvable'> {
+  const r = await deps.db.parId(id);
+  if (!r) return 'introuvable';
+  return (await envoyerConfirmation(r, deps)) ? 'ok' : 'echec';
+}
+
+/** Modification par l'organisateur : pas de date limite, e-mail et langue conservés, aucun e-mail envoyé. */
+export async function modifierParAdmin(id: number, champs: ChampsRsvp, deps: Deps): Promise<Resultat> {
+  const existante = await deps.db.parId(id);
+  if (!existante) return { type: 'introuvable' };
+  const v = valider({ ...champs, email: existante.email }, deps.ev.moments.map((m) => m.id), existante.langue);
+  if (!v.ok) return { type: 'invalide', erreurs: v.erreurs };
+  const { email: _ignore, ...sansEmail } = v.data;
+  const reponse = await deps.db.modifier(existante.jeton, sansEmail, deps.maintenant());
+  if (!reponse) return { type: 'introuvable' };
+  return { type: 'ok', reponse, emailEnvoye: false };
 }
